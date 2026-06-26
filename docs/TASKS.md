@@ -90,7 +90,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** models, feature endpoints, frontend.
 - **Handoff note:** _Done. FastAPI backend scaffold added with pydantic-settings config, Mistral/GDPR default, `/health`, read-only `/api/settings`, normalized API error shape, uv project/tests, and README run instructions._
 
-### [ ] Task 01B — Frontend scaffold (F)
+### [x] Task 01B — Frontend scaffold (F)
 - **Depends on:** 01A.
 - **Inputs:** TECHNICAL §1, §3 (frontend layout).
 - **Scope:** Create `frontend/` (Vite + React + TS, TanStack Query + Zod installed). Build runs
@@ -101,7 +101,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   succeeds.
 - **Not in this task:** API client wiring, nav chrome, privacy notice (Task 11); feature screens
   (Tasks 12–16).
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Vite React/TS frontend scaffold added with TanStack Query, Zod, basic Profile/Search/Board placeholder routes, README run instructions, and passing production build._
 
 ---
 

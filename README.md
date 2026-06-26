@@ -47,6 +47,24 @@ cd backend
 uv run pytest
 ```
 
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite app serves at `http://127.0.0.1:5173/` by default. Placeholder routes are available at
+`/profile`, `/search`, and `/board`.
+
+Build the frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
 ## Existing HR4U Smoke Test
 
 ```bash
