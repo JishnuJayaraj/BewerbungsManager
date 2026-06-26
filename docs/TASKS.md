@@ -194,7 +194,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** PDF/DOCX upload (non-goal v1); any job/workspace logic.
 - **Handoff note:** _Done. CV parser service, profile router, profile schemas, manual profile/skill/experience/project CRUD, brief_defaults persistence, and parse-failure fallback tests added._
 
-### [ ] Task 07 — Save job → application, brief, comms (B)
+### [x] Task 07 — Save job → application, brief, comms (B)
 - **Depends on:** 02, 04.
 - **Inputs:** SPEC §5.3 (workspace, guided brief, company motivation), §5.5 (comms log), TECHNICAL §4
   (Application/ApplicationBrief/CommsLogEntry), §7 decision 11 (snapshot at save-time); API.md
@@ -211,7 +211,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   work (status + board_order + next_action persist); brief saves/loads and is pre-filled from
   `brief_defaults`; comms entries create/list/delete; deleting a job source later doesn't break the card.
 - **Not in this task:** fit analysis, generation, checklist (Task 10), board UI.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Applications router added with save/snapshot/idempotency, list/get/patch/delete, brief prefill/update, comms log CRUD, schemas, and route tests._
 
 ### [ ] Task 08 — Fit analysis + requirements checklist (B)
 - **Depends on:** 05, 06, 07.
