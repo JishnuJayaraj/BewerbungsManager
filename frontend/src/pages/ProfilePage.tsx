@@ -7,12 +7,16 @@ import {
   useDeleteExperienceMutation,
   useDeleteProjectMutation,
   useDeleteSkillMutation,
+  useEnrichApplyMutation,
+  useEnrichQuestionsMutation,
   useParseCvMutation,
   useProfileQuery,
   useUpdateExperienceMutation,
   useUpdateProfileMutation,
   useUpdateProjectMutation,
   useUpdateSkillMutation,
+  type EnrichAnswer,
+  type EnrichQuestion,
   type Experience,
   type ExperienceInput,
   type Profile,
@@ -149,6 +153,8 @@ export function ProfilePage() {
         {parseCv.isError ? <ErrorNotice error={parseCv.error} /> : null}
       </form>
 
+      <EnrichPanel hasProfile={Boolean(profile.data)} />
+
       <form className="profile-card profile-card-wide" onSubmit={saveProfile}>
         <div className="card-heading">
           <h3>Identity</h3>
@@ -205,6 +211,116 @@ export function ProfilePage() {
       ) : null}
     </section>
   )
+}
+
+function EnrichPanel({ hasProfile }: { hasProfile: boolean }) {
+  const questions = useEnrichQuestionsMutation()
+  const apply = useEnrichApplyMutation()
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [result, setResult] = useState<{ changes: string[]; addedSkills: string[] } | null>(null)
+
+  const items: EnrichQuestion[] = questions.data?.questions ?? []
+
+  function ask() {
+    setResult(null)
+    setAnswers({})
+    questions.mutate()
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const payload: EnrichAnswer[] = items
+      .filter((q) => (answers[q.key] ?? '').trim().length > 0)
+      .map((q) => ({ key: q.key, question: q.question, answer: answers[q.key].trim() }))
+    if (payload.length === 0) return
+    apply.mutate(payload, {
+      onSuccess: (data) => {
+        setResult({ changes: data.changes, addedSkills: data.added_skills })
+        questions.reset()
+        setAnswers({})
+      },
+    })
+  }
+
+  const answeredCount = items.filter((q) => (answers[q.key] ?? '').trim().length > 0).length
+
+  return (
+    <section className="profile-card profile-card-wide prompt-card" aria-labelledby="enrich-title">
+      <div className="card-heading">
+        <div>
+          <h3 id="enrich-title">Enrich with AI</h3>
+          <p className="muted" style={{ margin: '4px 0 0' }}>
+            Let the assistant spot gaps and ask a few targeted questions. Your answers fold back
+            into your profile.
+          </p>
+        </div>
+        <button type="button" className="secondary-button" onClick={ask} disabled={questions.isPending}>
+          {questions.isPending ? 'Thinking…' : items.length > 0 ? 'New questions' : 'Ask AI'}
+        </button>
+      </div>
+
+      {!hasProfile && items.length === 0 ? (
+        <p className="muted">Tip: paste your CV or add a few skills first — the questions get sharper.</p>
+      ) : null}
+      {questions.isError ? <ErrorNotice error={questions.error} /> : null}
+
+      {items.length > 0 ? (
+        <form className="stacked-editor" onSubmit={submit}>
+          {items.map((q) => (
+            <label key={q.key}>
+              <span className="enrich-q">
+                <span className={`enrich-field enrich-field-${q.field}`}>{enrichFieldLabel(q.field)}</span>
+                {q.question}
+              </span>
+              {q.purpose ? <span className="muted enrich-purpose">{q.purpose}</span> : null}
+              <textarea
+                rows={2}
+                value={answers[q.key] ?? ''}
+                onChange={(event) => setAnswers((prev) => ({ ...prev, [q.key]: event.target.value }))}
+                placeholder="Your answer…"
+              />
+            </label>
+          ))}
+          <div className="row-actions">
+            <button type="submit" disabled={apply.isPending || answeredCount === 0}>
+              {apply.isPending ? 'Applying…' : `Apply ${answeredCount || ''} answer${answeredCount === 1 ? '' : 's'}`.trim()}
+            </button>
+            <span className="muted">{answeredCount} of {items.length} answered</span>
+          </div>
+          {apply.isError ? <ErrorNotice error={apply.error} /> : null}
+        </form>
+      ) : null}
+
+      {result ? (
+        <div className="notice enrich-result">
+          <h3>Profile updated</h3>
+          {result.changes.length > 0 ? (
+            <ul className="compact-list">
+              {result.changes.map((change, index) => (
+                <li key={index}>{change}</li>
+              ))}
+            </ul>
+          ) : null}
+          {result.addedSkills.length > 0 ? (
+            <p className="muted" style={{ marginTop: 10, marginBottom: 0 }}>
+              Added skills: {result.addedSkills.join(', ')}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function enrichFieldLabel(field: EnrichQuestion['field']): string {
+  switch (field) {
+    case 'years_exp':
+      return 'experience'
+    case 'target_roles':
+      return 'target'
+    default:
+      return field
+  }
 }
 
 function SkillsSection({ skills }: { skills: Skill[] }) {

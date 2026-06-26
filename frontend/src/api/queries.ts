@@ -13,6 +13,8 @@ import {
   deleteSearchPreset,
   deleteSkill,
   deleteComms,
+  enrichApply,
+  enrichQuestions,
   exportArtifact,
   generateArtifact,
   getArtifact,
@@ -45,6 +47,7 @@ import type {
   ApplicationBriefRequest,
   ApplicationPatch,
   CommsLogCreate,
+  EnrichAnswer,
   GeneratedArtifact,
   GenerateRequest,
   GeneratableArtifactKind,
@@ -339,6 +342,22 @@ export function useProfileQuery() {
 
 export function useParseCvMutation() {
   return useProfileMutation<string>((cvText) => parseCv(cvText))
+}
+
+export function useEnrichQuestionsMutation() {
+  return useMutation({
+    mutationFn: enrichQuestions,
+  })
+}
+
+export function useEnrichApplyMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (answers: EnrichAnswer[]) => enrichApply(answers),
+    onSuccess: (result) => {
+      queryClient.setQueryData(queryKeys.profile, result.profile)
+    },
+  })
 }
 
 export function useUpdateProfileMutation() {

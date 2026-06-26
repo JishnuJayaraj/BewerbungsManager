@@ -8,7 +8,14 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlmodel import Session, select
 
 from app.db import get_session, seed_local_user
-from app.models import Experience, Profile, ProfileEntrySource, Project, Skill
+from app.models import Experience, Profile, ProfileEntrySource, Project, Skill, SkillKind
+from app.schemas.enrich import (
+    EnrichApplyInputs,
+    EnrichApplyRequest,
+    EnrichApplyResponse,
+    EnrichInputs,
+    EnrichQuestionsResult,
+)
 from app.schemas.profile import (
     CvParseRequest,
     CvParseResult,
@@ -27,12 +34,17 @@ from app.schemas.profile import (
     parse_profile_date,
 )
 from app.services.cv_parser import CvParser
+from app.services.enrich import EnrichService
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 
 def get_cv_parser() -> CvParser:
     return CvParser()
+
+
+def get_enrich_service() -> EnrichService:
+    return EnrichService()
 
 
 @router.post("/parse", response_model=ProfileResponse)
@@ -81,6 +93,93 @@ def update_profile(
     session.commit()
     session.refresh(profile)
     return _profile_response(session, profile)
+
+
+@router.post("/enrich/questions", response_model=EnrichQuestionsResult)
+async def enrich_questions(
+    session: Session = Depends(get_session),
+    service: EnrichService = Depends(get_enrich_service),
+) -> EnrichQuestionsResult:
+    user = seed_local_user(session)
+    profile = _get_or_create_profile(session, user.id)
+    session.commit()
+    profile_dict = _profile_response(session, profile).model_dump(mode="json")
+    try:
+        return await service.questions(EnrichInputs(profile=profile_dict))
+    except Exception as exc:  # noqa: BLE001 — surface a clean 502 instead of a 500
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "upstream_llm_error", "message": "Could not generate enrichment questions."},
+        ) from exc
+
+
+@router.post("/enrich/apply", response_model=EnrichApplyResponse)
+async def enrich_apply(
+    request: EnrichApplyRequest,
+    session: Session = Depends(get_session),
+    service: EnrichService = Depends(get_enrich_service),
+) -> EnrichApplyResponse:
+    user = seed_local_user(session)
+    profile = _get_or_create_profile(session, user.id)
+    session.commit()
+    profile_dict = _profile_response(session, profile).model_dump(mode="json")
+
+    try:
+        enrichment = await service.apply(EnrichApplyInputs(profile=profile_dict, answers=request.answers))
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "upstream_llm_error", "message": "Could not apply enrichment."},
+        ) from exc
+
+    changes = list(enrichment.change_summary)
+    if enrichment.headline:
+        profile.headline = enrichment.headline
+    if enrichment.seniority:
+        profile.seniority = enrichment.seniority
+    if enrichment.years_exp is not None:
+        profile.years_exp = enrichment.years_exp
+    if enrichment.summary:
+        profile.summary = enrichment.summary
+    if enrichment.target_roles:
+        prefs = dict(profile.preferences or {})
+        existing = [str(role) for role in prefs.get("target_roles", [])]
+        merged = existing + [role for role in enrichment.target_roles if role not in existing]
+        prefs["target_roles"] = merged
+        profile.preferences = prefs
+
+    existing_skill_names = {
+        skill.name.casefold()
+        for skill in session.exec(select(Skill).where(Skill.profile_id == profile.id)).all()
+    }
+    added_skills: list[str] = []
+    for skill in enrichment.add_skills:
+        if skill.name.casefold() in existing_skill_names:
+            continue
+        session.add(
+            Skill(
+                user_id=user.id,
+                profile_id=profile.id,
+                name=skill.name,
+                kind=skill.kind if isinstance(skill.kind, SkillKind) else SkillKind(skill.kind),
+                level=skill.level,
+                source=ProfileEntrySource.MANUAL,
+            )
+        )
+        existing_skill_names.add(skill.name.casefold())
+        added_skills.append(skill.name)
+
+    if not changes:
+        changes = [f"Updated {len(request.answers)} detail(s) from your answers."]
+    profile.updated_at = _now()
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return EnrichApplyResponse(
+        profile=_profile_response(session, profile),
+        changes=changes,
+        added_skills=added_skills,
+    )
 
 
 @router.post("/skills", response_model=SkillResponse, status_code=status.HTTP_201_CREATED)

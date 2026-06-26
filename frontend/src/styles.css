@@ -774,6 +774,43 @@ a {
   border-color: var(--accent-tint-2);
 }
 
+.enrich-q {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+.enrich-field {
+  border-radius: 999px;
+  background: var(--accent);
+  color: #f6fbf7;
+  padding: 2px 9px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.enrich-field-skills { background: var(--clay); }
+.enrich-field-impact { background: #8a6d1f; }
+.enrich-field-language { background: #2b6f8c; }
+
+.enrich-purpose {
+  font-weight: 400;
+  font-size: 0.85rem;
+  letter-spacing: 0;
+}
+
+.enrich-result {
+  background: var(--accent-tint);
+  border-color: var(--accent-tint-2);
+}
+
 .prompt-actions,
 .chip-row,
 .selected-chip-row {

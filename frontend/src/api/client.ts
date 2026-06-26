@@ -10,6 +10,9 @@ import {
   autocompleteSuggestionSchema,
   basicSearchRequestSchema,
   cvParseRequestSchema,
+  enrichApplyRequestSchema,
+  enrichApplyResponseSchema,
+  enrichQuestionsResultSchema,
   experienceInputSchema,
   experienceSchema,
   experienceUpdateSchema,
@@ -41,6 +44,9 @@ import {
   requirementCheckSchema,
   requirementOverrideRequestSchema,
   type ApiErrorPayload,
+  type EnrichAnswer,
+  type EnrichApplyResponse,
+  type EnrichQuestionsResult,
   type Application,
   type ApplicationBrief,
   type ApplicationBriefRequest,
@@ -392,6 +398,21 @@ export function parseCv(cvText: string): Promise<Profile> {
     method: 'POST',
     body: cvParseRequestSchema.parse({ cv_text: cvText }),
     schema: profileSchema,
+  })
+}
+
+export function enrichQuestions(): Promise<EnrichQuestionsResult> {
+  return apiRequest('/api/profile/enrich/questions', {
+    method: 'POST',
+    schema: enrichQuestionsResultSchema,
+  })
+}
+
+export function enrichApply(answers: EnrichAnswer[]): Promise<EnrichApplyResponse> {
+  return apiRequest('/api/profile/enrich/apply', {
+    method: 'POST',
+    body: enrichApplyRequestSchema.parse({ answers }),
+    schema: enrichApplyResponseSchema,
   })
 }
 

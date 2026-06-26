@@ -489,6 +489,33 @@ export const cvParseRequestSchema = z.object({
   cv_text: z.string().min(1),
 })
 
+export const enrichQuestionSchema = z.object({
+  key: z.string(),
+  question: z.string(),
+  purpose: z.string().default(''),
+  field: z.enum(['summary', 'seniority', 'years_exp', 'target_roles', 'skills', 'impact', 'language', 'other']),
+})
+
+export const enrichQuestionsResultSchema = z.object({
+  questions: z.array(enrichQuestionSchema).default([]),
+})
+
+export const enrichAnswerSchema = z.object({
+  key: z.string(),
+  question: z.string(),
+  answer: z.string().min(1),
+})
+
+export const enrichApplyRequestSchema = z.object({
+  answers: z.array(enrichAnswerSchema).min(1),
+})
+
+export const enrichApplyResponseSchema = z.object({
+  profile: profileSchema,
+  changes: z.array(z.string()).default([]),
+  added_skills: z.array(z.string()).default([]),
+})
+
 export type ApiErrorPayload = z.infer<typeof apiErrorSchema>['error']
 export type Health = z.infer<typeof healthSchema>
 export type Settings = z.infer<typeof settingsSchema>
@@ -544,3 +571,7 @@ export type ProjectInput = z.infer<typeof projectInputSchema>
 export type ProjectUpdate = z.infer<typeof projectUpdateSchema>
 export type SkillKind = z.infer<typeof skillKindSchema>
 export type ProfileEntrySource = z.infer<typeof profileEntrySourceSchema>
+export type EnrichQuestion = z.infer<typeof enrichQuestionSchema>
+export type EnrichQuestionsResult = z.infer<typeof enrichQuestionsResultSchema>
+export type EnrichAnswer = z.infer<typeof enrichAnswerSchema>
+export type EnrichApplyResponse = z.infer<typeof enrichApplyResponseSchema>

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     llm_cv_parse_model: str | None = Field(default=None, alias="LLM_CV_PARSE_MODEL")
     llm_suggest_model: str | None = Field(default=None, alias="LLM_SUGGEST_MODEL")
     llm_fit_model: str | None = Field(default=None, alias="LLM_FIT_MODEL")
+    llm_enrich_model: str | None = Field(default=None, alias="LLM_ENRICH_MODEL")
 
     anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
