@@ -5,8 +5,12 @@ from app.config import Settings
 from app.main import create_app
 
 
+def isolated_settings(**overrides: object) -> Settings:
+    return Settings(_env_file=None, **overrides)
+
+
 def test_health() -> None:
-    client = TestClient(create_app(Settings()))
+    client = TestClient(create_app(isolated_settings()))
 
     response = client.get("/health")
 
@@ -14,8 +18,11 @@ def test_health() -> None:
     assert response.json() == {"status": "ok"}
 
 
-def test_settings_excludes_secrets_and_defaults_to_mistral() -> None:
+def test_settings_excludes_secrets_and_defaults_to_mistral(monkeypatch) -> None:
+    monkeypatch.delenv("LLM_DEFAULT_PROVIDER", raising=False)
+    monkeypatch.delenv("LLM_DEFAULT_MODEL", raising=False)
     settings = Settings(
+        _env_file=None,
         HR4U_TOKEN="secret-hr4u",
         ANTHROPIC_API_KEY="secret-anthropic",
         OPENAI_API_KEY="secret-openai",
@@ -35,7 +42,7 @@ def test_settings_excludes_secrets_and_defaults_to_mistral() -> None:
 
 
 def test_404_uses_api_error_shape() -> None:
-    client = TestClient(create_app(Settings()))
+    client = TestClient(create_app(isolated_settings()))
 
     response = client.get("/missing")
 
@@ -46,7 +53,7 @@ def test_404_uses_api_error_shape() -> None:
 
 
 def test_validation_error_uses_api_error_shape() -> None:
-    app = create_app(Settings())
+    app = create_app(isolated_settings())
 
     @app.get("/requires-int")
     async def requires_int(value: int) -> dict[str, int]:
@@ -64,7 +71,7 @@ def test_validation_error_uses_api_error_shape() -> None:
 
 
 def test_http_exception_uses_status_code_mapping() -> None:
-    app = create_app(Settings())
+    app = create_app(isolated_settings())
 
     @app.get("/conflict")
     async def conflict() -> None:
