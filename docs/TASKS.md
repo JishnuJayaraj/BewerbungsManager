@@ -107,7 +107,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 
 ## Phase 1 — Backend core
 
-### [ ] Task 02 — Data models & migrations (B)
+### [x] Task 02 — Data models & migrations (B)
 - **Depends on:** 00B, 01A.
 - **Inputs:** TECHNICAL §4 (full data model, reconciled), §7 decisions 10–11.
 - **Scope:** Define all SQLModel tables from TECHNICAL §4: User, Profile, Skill, Experience,
@@ -121,7 +121,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   user works; models import cleanly. Enums match the spec (artifact kinds incl. `PORTAL_ANSWER`,
   `ANSWER_DRAFT`; statuses; requirement HAVE/PARTIAL/MISSING).
 - **Not in this task:** endpoints, services, business logic.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. SQLModel tables/enums, `app/db.py` engine/session/local-user seed, Alembic initial schema migration, and focused model tests added; fresh SQLite upgrade verified._
 
 ### [ ] Task 03 — HR4U async client service (B)
 - **Depends on:** 00, 02.
