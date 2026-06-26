@@ -44,7 +44,13 @@ async def run_fit(
     user = seed_local_user(session)
     application = _get_application(session, user.id, application_id)
     inputs = _fit_inputs(session, user.id, application)
-    result = await service.run(inputs)
+    try:
+        result = await service.run(inputs)
+    except Exception as exc:  # noqa: BLE001 — clean 502 instead of a 500
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "upstream_llm_error", "message": "Could not run the fit analysis. Please try again."},
+        ) from exc
 
     for artifact in session.exec(
         select(GeneratedArtifact).where(

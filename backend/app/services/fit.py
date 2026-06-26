@@ -14,9 +14,17 @@ class FitService:
                 {
                     "role": "system",
                     "content": (
-                        "Return only JSON matching the fit schema. Produce fit explanation and "
-                        "requirements in one call. Do not produce a numeric score. Surface honest "
-                        "risks and do_not_claim items for unsupported requirements."
+                        "Compare the candidate profile to the job and return ONLY JSON: "
+                        '{"fit": {"summary": str, "strong_matches": [{"point": str, '
+                        '"evidence_ref": str|null}], "weak_matches": [{"point": str}], '
+                        '"unknowns": [{"point": str}], "suggested_angle": str, '
+                        '"risks_to_address": [{"risk": str, "honest_framing": str}], '
+                        '"do_not_claim": [str]}, "requirements": [{"requirement": str, '
+                        '"status": "HAVE"|"PARTIAL"|"MISSING", "evidence_ref": str|null}]}. '
+                        "Extract the role's key requirements into the requirements array, each with "
+                        "the field name \"requirement\" (a short requirement) and a status of HAVE, "
+                        "PARTIAL, or MISSING based on the profile. Do not produce a numeric score. "
+                        "Be honest: list real gaps in weak_matches/risks and never claim unsupported skills."
                     ),
                 },
                 {"role": "user", "content": inputs.model_dump_json()},

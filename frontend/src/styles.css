@@ -418,10 +418,59 @@ a {
 
 .kanban-columns {
   display: grid;
-  grid-template-columns: repeat(6, minmax(224px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(6, minmax(190px, 1fr));
+  gap: 12px;
   overflow-x: auto;
   padding-bottom: 10px;
+}
+
+.kanban-card {
+  position: relative;
+}
+
+.kanban-card-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-height: 24px;
+  width: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 1.1rem;
+  line-height: 1;
+  box-shadow: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.kanban-card:hover .kanban-card-remove {
+  opacity: 1;
+}
+
+.kanban-card-remove:hover {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  transform: none;
+}
+
+.kanban-card-open {
+  margin-top: 4px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.kanban-card:hover .kanban-card-open {
+  opacity: 1;
+}
+
+.board-empty {
+  text-align: center;
 }
 
 .kanban-column {
@@ -811,6 +860,154 @@ a {
 .comms-entry p {
   margin-bottom: 0;
   white-space: pre-wrap;
+}
+
+/* ── Match section (workspace fit) ───────────────────── */
+
+.match-section {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--accent-tint-2);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--accent-tint), var(--surface));
+  padding: clamp(20px, 3vw, 28px);
+  box-shadow: var(--shadow-sm);
+}
+
+.match-summary {
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+}
+
+.match-summary p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.match-angle {
+  margin-top: 10px !important;
+  color: var(--accent-ink);
+}
+
+.match-block h4 {
+  margin: 0 0 10px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.match-req-list {
+  display: grid;
+  gap: 8px;
+}
+
+.match-req {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px 14px;
+}
+
+.match-req-text {
+  font-weight: 500;
+}
+
+.req-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 96px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.req-have { background: var(--good-bg); color: var(--good-fg); }
+.req-partial { background: var(--warn-bg); color: var(--warn-fg); }
+.req-missing { background: var(--bad-bg); color: var(--bad-fg); }
+
+.match-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.match-block ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.match-good {
+  border: 1px solid #aed4ba;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--good-bg) 50%, var(--surface));
+  padding: 16px 18px;
+}
+
+.match-gap {
+  border: 1px solid var(--bad-line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bad-bg) 45%, var(--surface));
+  padding: 16px 18px;
+}
+
+/* ── Tracking + tailoring ────────────────────────────── */
+
+.tracking-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+.tracking-action {
+  display: grid;
+  grid-template-columns: 1fr minmax(150px, 180px) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.tracking-action label,
+.tracking-card label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tailor-form {
+  display: grid;
+  gap: 14px;
+}
+
+.tailor-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tailor-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 /* ── Workspace ───────────────────────────────────────── */
@@ -2363,7 +2560,10 @@ a {
 
   .results-grid,
   .search-bar-row,
-  .search-bar-row:has(.search-bar-radius) {
+  .search-bar-row:has(.search-bar-radius),
+  .match-cols,
+  .tracking-row,
+  .tracking-action {
     grid-template-columns: 1fr;
   }
 

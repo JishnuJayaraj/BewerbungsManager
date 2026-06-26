@@ -1,6 +1,6 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { CommsLogPanel, PackageChecklistPanel } from '../components/ApplicationPanels'
+import { CommsLogPanel } from '../components/ApplicationPanels'
 import {
   ApiError,
   useApplicationBriefQuery,
@@ -10,22 +10,29 @@ import {
   useExportArtifactMutation,
   useFitQuery,
   useGenerateArtifactMutation,
-  useProfileQuery,
+  usePatchApplicationMutation,
   useRunFitMutation,
   useUpdateApplicationBriefMutation,
-  useUpdateRequirementOverrideMutation,
   coverLetterContentSchema,
   cvBulletSuggestionsContentSchema,
   portalAnswerContentSchema,
   type Application,
   type ApplicationBrief,
+  type ApplicationStatus,
   type GeneratedArtifact,
   type GeneratableArtifactKind,
   type FitResponse,
-  type Profile,
   type RequirementCheck,
-  type RequirementStatus,
 } from '../api'
+
+const stageOptions: Array<{ value: ApplicationStatus; label: string }> = [
+  { value: 'SAVED', label: 'Saved' },
+  { value: 'APPLIED', label: 'Applied' },
+  { value: 'INTERVIEW', label: 'Interview' },
+  { value: 'OFFER', label: 'Offer' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'CLOSED', label: 'Closed' },
+]
 
 type BriefForm = {
   target_angle: string
@@ -36,14 +43,6 @@ type BriefForm = {
   company_motivation: string
   user_notes: string
   free_emphasis: string
-}
-
-type EvidenceChip = {
-  id: string
-  ref: string
-  label: string
-  detail: string
-  kind: 'skill' | 'experience' | 'project'
 }
 
 const emptyBriefForm: BriefForm = {
@@ -57,7 +56,6 @@ const emptyBriefForm: BriefForm = {
   free_emphasis: '',
 }
 
-const requirementStatuses: RequirementStatus[] = ['HAVE', 'PARTIAL', 'MISSING']
 const artifactKinds: Array<{ kind: GeneratableArtifactKind; label: string }> = [
   { kind: 'COVER_LETTER', label: 'Cover letter' },
   { kind: 'CV_BULLET_SUGGESTIONS', label: 'CV bullets' },
@@ -66,24 +64,20 @@ const artifactKinds: Array<{ kind: GeneratableArtifactKind; label: string }> = [
 
 export function WorkspacePage() {
   const { applicationId } = useParams()
-
   if (!applicationId) {
     return <WorkspacePicker />
   }
-
   return <WorkspaceDetail applicationId={applicationId} />
 }
 
 function WorkspacePicker() {
   const applications = useApplicationsQuery()
-
   return (
     <section className="workspace-layout" aria-labelledby="workspace-title">
       <div className="section-heading">
         <p className="eyebrow">Workspace</p>
         <h2 id="workspace-title">Select an application</h2>
       </div>
-      {applications.isPending ? <p className="muted">Loading applications...</p> : null}
       {applications.isError ? <ErrorNotice error={applications.error} /> : null}
       <div className="workspace-list">
         {applications.data?.items.map((application) => (
@@ -93,32 +87,23 @@ function WorkspacePicker() {
           </Link>
         ))}
       </div>
-      {applications.data?.items.length === 0 ? (
-        <p className="muted">Saved jobs will appear here after you add them from Search.</p>
-      ) : null}
     </section>
   )
 }
 
 function WorkspaceDetail({ applicationId }: { applicationId: string }) {
   const application = useApplicationQuery(applicationId)
-  const profile = useProfileQuery()
   const brief = useApplicationBriefQuery(applicationId)
   const fit = useFitQuery(applicationId)
   const updateBrief = useUpdateApplicationBriefMutation(applicationId)
   const runFit = useRunFitMutation(applicationId)
-  const updateRequirement = useUpdateRequirementOverrideMutation(applicationId)
   const [form, setForm] = useState<BriefForm>(emptyBriefForm)
 
   useEffect(() => {
-    if (brief.data) {
-      setForm(briefToForm(brief.data))
-    }
+    if (brief.data) setForm(briefToForm(brief.data))
   }, [brief.data])
 
-  const evidence = useMemo(() => evidenceChips(profile.data), [profile.data])
   const jobTitle = stringAt(application.data?.job_snapshot, ['text', 'title']) ?? application.data?.job_title ?? ''
-  const company = application.data?.company ?? stringAt(application.data?.job_snapshot, ['companyCleaned']) ?? ''
 
   function saveBrief(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -132,63 +117,252 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
           <p className="eyebrow">Workspace</p>
           <h2 id="workspace-title">{jobTitle || 'Application workspace'}</h2>
         </div>
-        <div className="row-actions">
-          <Link className="nav-link" to="/board">← Board</Link>
-          <Link className="nav-link" to="/search">Search</Link>
-        </div>
+        <Link className="cta-link cta-link-quiet" to="/board">← Board</Link>
       </div>
 
-      {application.isPending ? <p className="muted">Loading application...</p> : null}
       {application.isError ? <ErrorNotice error={application.error} /> : null}
-      {brief.isError ? <ErrorNotice error={brief.error} /> : null}
-      {profile.isError ? <ErrorNotice error={profile.error} /> : null}
 
       {application.data ? <JobSnapshot application={application.data} /> : null}
+      {application.data ? <TrackingCard application={application.data} /> : null}
 
-      <div className="workspace-grid">
-        <div className="workspace-main">
-          <MissingInfoPrompts
-            company={company}
-            jobTitle={jobTitle}
-            fit={fit.data}
-            form={form}
-            setForm={setForm}
-          />
-          <BriefBuilder
-            form={form}
-            setForm={setForm}
-            evidence={evidence}
-            fit={fit.data}
-            saving={updateBrief.isPending}
-            saveError={updateBrief.error}
-            onSubmit={saveBrief}
-          />
-          <FitPanel
-            fit={fit.data}
-            fitError={fit.error}
-            running={runFit.isPending}
-            runError={runFit.error}
-            onRun={() => runFit.mutate()}
-          />
-          <ArtifactsPanel applicationId={applicationId} />
-        </div>
+      <MatchSection
+        fit={fit.data}
+        fitError={fit.error}
+        running={runFit.isPending}
+        runError={runFit.error}
+        onRun={() => runFit.mutate()}
+      />
 
-        <aside className="workspace-side">
-          <RequirementsPanel
-            requirements={fit.data?.requirements ?? []}
-            evidence={evidence}
-            onOverride={(requirementId, userOverride) =>
-              updateRequirement.mutate({ requirementId, userOverride })
-            }
-            pending={updateRequirement.isPending}
-            error={updateRequirement.error}
-          />
-          <MatchedEvidence evidence={evidence} requirements={fit.data?.requirements ?? []} />
-          <PackageChecklistPanel applicationId={applicationId} />
-          <CommsLogPanel applicationId={applicationId} />
-        </aside>
-      </div>
+      <TailoringForm
+        form={form}
+        setForm={setForm}
+        saving={updateBrief.isPending}
+        error={updateBrief.error}
+        suggestedAngle={fit.data?.fit.suggested_angle ?? null}
+        onSubmit={saveBrief}
+      />
+
+      <ArtifactsPanel applicationId={applicationId} />
+
+      <details className="board-accordion">
+        <summary><span>Communication log</span></summary>
+        <CommsLogPanel applicationId={applicationId} compact />
+      </details>
     </section>
+  )
+}
+
+function TrackingCard({ application }: { application: Application }) {
+  const patch = usePatchApplicationMutation()
+  const [nextAction, setNextAction] = useState(application.next_action ?? '')
+  const [followup, setFollowup] = useState(application.followup_date ?? '')
+
+  useEffect(() => {
+    setNextAction(application.next_action ?? '')
+    setFollowup(application.followup_date ?? '')
+  }, [application.id, application.next_action, application.followup_date])
+
+  function saveAction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    patch.mutate({ id: application.id, input: { next_action: nullIfEmpty(nextAction), followup_date: nullIfEmpty(followup) } })
+  }
+
+  return (
+    <section className="workspace-card tracking-card">
+      <div className="tracking-row">
+        <label className="stage-select">
+          Stage
+          <select
+            value={application.status}
+            onChange={(event) => patch.mutate({ id: application.id, input: { status: event.target.value as ApplicationStatus } })}
+          >
+            {stageOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <form className="tracking-action" onSubmit={saveAction}>
+          <label>
+            Next step
+            <input value={nextAction} onChange={(event) => setNextAction(event.target.value)} placeholder="e.g. tailor cover letter and apply" />
+          </label>
+          <label className="tracking-date">
+            Follow-up
+            <input type="date" value={followup} onChange={(event) => setFollowup(event.target.value)} />
+          </label>
+          <button type="submit" disabled={patch.isPending}>{patch.isPending ? 'Saving…' : 'Save'}</button>
+        </form>
+      </div>
+      {patch.isError ? <ErrorNotice error={patch.error} /> : null}
+    </section>
+  )
+}
+
+function statusIcon(status: string): string {
+  if (status === 'HAVE') return '✓'
+  if (status === 'MISSING') return '✗'
+  return '~'
+}
+
+function MatchSection({
+  fit,
+  fitError,
+  running,
+  runError,
+  onRun,
+}: {
+  fit: FitResponse | undefined
+  fitError: Error | null
+  running: boolean
+  runError: Error | null
+  onRun: () => void
+}) {
+  const noFitYet = fitError instanceof ApiError && fitError.status === 404
+  const missing = (fit?.requirements ?? []).filter((r) => effectiveStatus(r) === 'MISSING')
+  const weakPoints = fit?.fit.weak_matches.map((m) => m.point).filter(Boolean) ?? []
+
+  return (
+    <section className="match-section">
+      <div className="card-heading">
+        <div>
+          <h3>How you match this role</h3>
+          <p className="muted">What the role needs, what you bring, and the honest gaps.</p>
+        </div>
+        <button type="button" onClick={onRun} disabled={running}>
+          {running ? 'Analyzing…' : fit ? 'Re-analyze' : 'Analyze fit'}
+        </button>
+      </div>
+
+      {runError ? <ErrorNotice error={runError} /> : null}
+      {fitError && !noFitYet ? <ErrorNotice error={fitError} /> : null}
+      {!fit && !running ? (
+        <p className="muted">Run the analysis to see how your profile matches this job — strengths, gaps, and an angle.</p>
+      ) : null}
+      {running && !fit ? <p className="muted">Comparing your profile to the posting…</p> : null}
+
+      {fit ? (
+        <>
+          <div className="match-summary">
+            <p>{fit.fit.summary}</p>
+            {fit.fit.suggested_angle ? (
+              <p className="match-angle"><strong>Angle:</strong> {fit.fit.suggested_angle}</p>
+            ) : null}
+          </div>
+
+          {fit.requirements.length > 0 ? (
+            <div className="match-block">
+              <h4>What the role needs</h4>
+              <div className="match-req-list">
+                {fit.requirements.map((req) => {
+                  const status = effectiveStatus(req)
+                  return (
+                    <div className="match-req" key={req.id}>
+                      <span className={`req-badge req-${status.toLowerCase()}`}>{statusIcon(status)} {status}</span>
+                      <span className="match-req-text">{req.requirement}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="match-cols">
+            <div className="match-block match-good">
+              <h4>Your strengths</h4>
+              {fit.fit.strong_matches.length === 0 ? <p className="muted">—</p> : null}
+              <ul>
+                {fit.fit.strong_matches.map((item, index) => (
+                  <li key={index}>{item.point}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="match-block match-gap">
+              <h4>Gaps to address honestly</h4>
+              {missing.length === 0 && weakPoints.length === 0 ? <p className="muted">No major gaps.</p> : null}
+              <ul>
+                {missing.map((req) => (
+                  <li key={req.id}>{req.requirement}</li>
+                ))}
+                {weakPoints.map((point, index) => (
+                  <li key={`w-${index}`}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {fit.fit.risks_to_address.length > 0 ? (
+            <div className="match-block">
+              <h4>How to handle the gaps</h4>
+              <div className="risk-list">
+                {fit.fit.risks_to_address.map((risk, index) => (
+                  <article key={index}>
+                    <strong>{risk.risk}</strong>
+                    <p>{risk.honest_framing}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+function TailoringForm({
+  form,
+  setForm,
+  saving,
+  error,
+  suggestedAngle,
+  onSubmit,
+}: {
+  form: BriefForm
+  setForm: (form: BriefForm) => void
+  saving: boolean
+  error: Error | null
+  suggestedAngle: string | null
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+}) {
+  return (
+    <details className="board-accordion">
+      <summary><span>Tailor this application</span></summary>
+      <form className="board-detail-card tailor-form" onSubmit={onSubmit}>
+        <p className="muted">These shape the tone and angle of the materials generated below — per job.</p>
+        <div className="field-grid">
+          <label>
+            Tone
+            <input value={form.tone} onChange={(event) => setForm({ ...form, tone: event.target.value })} placeholder="direct, professional" />
+          </label>
+          <label>
+            Language
+            <select value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value as 'DE' | 'EN' })}>
+              <option value="DE">German</option>
+              <option value="EN">English</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span className="tailor-label-row">
+            Positioning angle
+            {suggestedAngle ? (
+              <button type="button" className="link-toggle" onClick={() => setForm({ ...form, target_angle: suggestedAngle })}>
+                Use suggested
+              </button>
+            ) : null}
+          </span>
+          <input value={form.target_angle} onChange={(event) => setForm({ ...form, target_angle: event.target.value })} placeholder="e.g. data analyst with strong BI/dashboarding focus" />
+        </label>
+        <label>
+          Why this company?
+          <textarea value={form.company_motivation} rows={2} onChange={(event) => setForm({ ...form, company_motivation: event.target.value })} />
+        </label>
+        <div className="row-actions">
+          <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save tailoring'}</button>
+        </div>
+        {error ? <ErrorNotice error={error} /> : null}
+      </form>
+    </details>
   )
 }
 
@@ -256,7 +430,10 @@ function ArtifactsPanel({ applicationId }: { applicationId: string }) {
   return (
     <section className="workspace-card artifacts-panel">
       <div className="card-heading">
-        <h3>Artifacts</h3>
+        <div>
+          <h3>Application materials</h3>
+          <p className="muted" style={{ margin: '4px 0 0' }}>Generate tailored materials grounded in your profile.</p>
+        </div>
         {selectedArtifact?.has_unsupported ? <span className="unsupported-pill">Unsupported claims</span> : null}
       </div>
       <div className="artifact-tabs" role="tablist" aria-label="Artifact kinds">
@@ -278,15 +455,11 @@ function ArtifactsPanel({ applicationId }: { applicationId: string }) {
         {kind === 'PORTAL_ANSWER' ? (
           <label>
             Portal question
-            <textarea
-              value={portalQuestion}
-              rows={3}
-              onChange={(event) => setPortalQuestion(event.target.value)}
-            />
+            <textarea value={portalQuestion} rows={3} onChange={(event) => setPortalQuestion(event.target.value)} />
           </label>
         ) : null}
         <label>
-          Regenerate instruction
+          Regenerate instruction (optional)
           <input
             value={instruction}
             placeholder="make it shorter, use German B2 wording, emphasize Python"
@@ -297,22 +470,18 @@ function ArtifactsPanel({ applicationId }: { applicationId: string }) {
           type="submit"
           disabled={generate.isPending || (kind === 'PORTAL_ANSWER' && portalQuestion.trim().length === 0)}
         >
-          {generate.isPending ? 'Generating...' : selectedArtifact ? 'Generate new version' : 'Generate'}
+          {generate.isPending ? 'Generating…' : selectedArtifact ? 'Generate new version' : 'Generate'}
         </button>
       </form>
       {generate.error ? <ErrorNotice error={generate.error} /> : null}
       {artifacts.isError ? <ErrorNotice error={artifacts.error} /> : null}
-      {artifacts.isPending ? <p className="muted">Loading artifact versions...</p> : null}
       {artifacts.data && artifacts.data.items.length > 0 ? (
         <label>
           Version
-          <select
-            value={selectedArtifactId ?? ''}
-            onChange={(event) => setSelectedArtifactId(event.target.value)}
-          >
+          <select value={selectedArtifactId ?? ''} onChange={(event) => setSelectedArtifactId(event.target.value)}>
             {artifacts.data.items.map((artifact) => (
               <option key={artifact.id} value={artifact.id}>
-                {formatDateTime(artifact.created_at)}{artifact.is_current ? ' current' : ''}
+                {formatDateTime(artifact.created_at)}{artifact.is_current ? ' · current' : ''}
               </option>
             ))}
           </select>
@@ -323,15 +492,9 @@ function ArtifactsPanel({ applicationId }: { applicationId: string }) {
           <ArtifactRenderer artifact={selectedArtifact} />
           <CitationPanel artifact={selectedArtifact} />
           <div className="artifact-actions">
-            <button type="button" className="secondary-button" onClick={() => exportSelected('markdown')}>
-              Markdown
-            </button>
-            <button type="button" className="secondary-button" onClick={copyMarkdown}>
-              Copy
-            </button>
-            <button type="button" className="secondary-button" onClick={() => exportSelected('pdf')}>
-              PDF
-            </button>
+            <button type="button" className="secondary-button" onClick={() => exportSelected('markdown')}>Markdown</button>
+            <button type="button" className="secondary-button" onClick={copyMarkdown}>Copy</button>
+            <button type="button" className="secondary-button" onClick={() => exportSelected('pdf')}>PDF</button>
             {copyStatus ? <span className="muted">{copyStatus}</span> : null}
           </div>
           {exportMutation.error ? <ErrorNotice error={exportMutation.error} /> : null}
@@ -405,9 +568,8 @@ function ArtifactRenderer({ artifact }: { artifact: GeneratedArtifact }) {
 
 function CitationPanel({ artifact }: { artifact: GeneratedArtifact }) {
   if (artifact.citations.length === 0) {
-    return <p className="muted">No factual claims were returned for citation verification.</p>
+    return null
   }
-
   return (
     <section className="citation-panel">
       <h4>Citations</h4>
@@ -437,352 +599,17 @@ function JobSnapshot({ application }: { application: Application }) {
   const company = application.company ?? stringAt(snapshot, ['companyCleaned']) ?? stringAt(snapshot, ['company'])
   const place = stringAt(snapshot, ['addresses', 0, 'place'])
   const link = stringAt(snapshot, ['link'])
-  const requirements = stringArrayAt(snapshot, ['text', 'requirements'])
 
   return (
     <section className="workspace-card job-snapshot">
       <div>
         <p className="eyebrow">Job snapshot</p>
         <h3>{title}</h3>
-        <p className="muted">{[company, place].filter(Boolean).join(' - ') || 'Company/location not listed'}</p>
+        <p className="muted">{[company, place].filter(Boolean).join(' · ') || 'Company/location not listed'}</p>
       </div>
       <div className="snapshot-actions">
         <span className="status-pill">{application.status}</span>
-        {link ? <a href={link} target="_blank" rel="noreferrer">Original posting</a> : null}
-      </div>
-      {requirements.length > 0 ? (
-        <ul className="snapshot-requirements">
-          {requirements.slice(0, 4).map((requirement) => (
-            <li key={requirement}>{requirement}</li>
-          ))}
-        </ul>
-      ) : null}
-    </section>
-  )
-}
-
-function MissingInfoPrompts({
-  company,
-  jobTitle,
-  fit,
-  form,
-  setForm,
-}: {
-  company: string
-  jobTitle: string
-  fit: FitResponse | undefined
-  form: BriefForm
-  setForm: (updater: (current: BriefForm) => BriefForm) => void
-}) {
-  const prompts = [
-    {
-      key: 'motivation',
-      label: 'Add company motivation',
-      hidden: form.company_motivation.trim().length > 0 || !company,
-      apply: () =>
-        setForm((current) => ({
-          ...current,
-          company_motivation: `I am interested in ${company} because of the product, engineering scope, and role context.`,
-        })),
-    },
-    {
-      key: 'angle',
-      label: 'Use suggested angle',
-      hidden: form.target_angle.trim().length > 0 || !fit?.fit.suggested_angle,
-      apply: () => setForm((current) => ({ ...current, target_angle: fit?.fit.suggested_angle ?? current.target_angle })),
-    },
-    {
-      key: 'role-angle',
-      label: 'Frame for this role',
-      hidden: form.target_angle.trim().length > 0 || !jobTitle,
-      apply: () =>
-        setForm((current) => ({
-          ...current,
-          target_angle: `${jobTitle} with emphasis on the strongest verified profile evidence.`,
-        })),
-    },
-    {
-      key: 'risk',
-      label: 'Add honest risk note',
-      hidden: form.avoid.trim().length > 0 || (fit?.fit.do_not_claim.length ?? 0) === 0,
-      apply: () =>
-        setForm((current) => ({
-          ...current,
-          avoid: `Do not overstate: ${fit?.fit.do_not_claim.join(', ') ?? ''}`,
-        })),
-    },
-  ].filter((prompt) => !prompt.hidden)
-
-  if (prompts.length === 0) {
-    return null
-  }
-
-  return (
-    <section className="workspace-card prompt-card">
-      <h3>Missing info prompts</h3>
-      <div className="prompt-actions">
-        {prompts.map((prompt) => (
-          <button type="button" className="secondary-button" key={prompt.key} onClick={prompt.apply}>
-            {prompt.label}
-          </button>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function BriefBuilder({
-  form,
-  setForm,
-  evidence,
-  fit,
-  saving,
-  saveError,
-  onSubmit,
-}: {
-  form: BriefForm
-  setForm: (value: BriefForm) => void
-  evidence: EvidenceChip[]
-  fit: FitResponse | undefined
-  saving: boolean
-  saveError: Error | null
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
-  const angleSuggestions = [
-    fit?.fit.suggested_angle,
-    'Backend/platform specialist',
-    'Fast-learning generalist',
-    'Domain-focused engineer',
-  ].filter((value): value is string => Boolean(value))
-
-  function toggleEmphasis(label: string) {
-    setForm({
-      ...form,
-      emphasize: form.emphasize.includes(label)
-        ? form.emphasize.filter((item) => item !== label)
-        : [...form.emphasize, label],
-    })
-  }
-
-  function addFreeEmphasis() {
-    const value = form.free_emphasis.trim()
-    if (!value || form.emphasize.includes(value)) {
-      return
-    }
-    setForm({ ...form, emphasize: [...form.emphasize, value], free_emphasis: '' })
-  }
-
-  return (
-    <form className="workspace-card brief-builder" onSubmit={onSubmit}>
-      <div className="card-heading">
-        <h3>Application brief</h3>
-        <button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save brief'}</button>
-      </div>
-      <div className="chip-row">
-        {angleSuggestions.map((angle) => (
-          <button type="button" className="secondary-button" key={angle} onClick={() => setForm({ ...form, target_angle: angle })}>
-            {angle}
-          </button>
-        ))}
-      </div>
-      <label>
-        Target angle
-        <textarea
-          value={form.target_angle}
-          rows={3}
-          onChange={(event) => setForm({ ...form, target_angle: event.target.value })}
-        />
-      </label>
-      <div>
-        <h4>Evidence to emphasize</h4>
-        <div className="evidence-chip-grid">
-          {evidence.map((item) => (
-            <button
-              type="button"
-              className={form.emphasize.includes(item.label) ? 'evidence-chip evidence-chip-active' : 'evidence-chip'}
-              key={item.ref}
-              onClick={() => toggleEmphasis(item.label)}
-            >
-              <strong>{item.label}</strong>
-              <span>{item.detail}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="preset-form">
-        <input
-          value={form.free_emphasis}
-          placeholder="Add emphasis"
-          onChange={(event) => setForm({ ...form, free_emphasis: event.target.value })}
-        />
-        <button type="button" className="secondary-button" onClick={addFreeEmphasis}>Add</button>
-      </div>
-      {form.emphasize.length > 0 ? (
-        <div className="selected-chip-row">
-          {form.emphasize.map((item) => (
-            <button type="button" className="selected-chip" key={item} onClick={() => toggleEmphasis(item)}>
-              {item}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <div className="field-grid">
-        <label>
-          Tone
-          <input value={form.tone} onChange={(event) => setForm({ ...form, tone: event.target.value })} />
-        </label>
-        <label>
-          Language
-          <select
-            value={form.language}
-            onChange={(event) => setForm({ ...form, language: event.target.value as BriefForm['language'] })}
-          >
-            <option value="DE">DE</option>
-            <option value="EN">EN</option>
-          </select>
-        </label>
-      </div>
-      <label>
-        Why this company?
-        <textarea
-          value={form.company_motivation}
-          rows={4}
-          onChange={(event) => setForm({ ...form, company_motivation: event.target.value })}
-        />
-      </label>
-      <label>
-        Avoid
-        <textarea value={form.avoid} rows={3} onChange={(event) => setForm({ ...form, avoid: event.target.value })} />
-      </label>
-      <label>
-        User notes
-        <textarea
-          value={form.user_notes}
-          rows={4}
-          onChange={(event) => setForm({ ...form, user_notes: event.target.value })}
-        />
-      </label>
-      {saveError ? <ErrorNotice error={saveError} /> : null}
-    </form>
-  )
-}
-
-function FitPanel({
-  fit,
-  fitError,
-  running,
-  runError,
-  onRun,
-}: {
-  fit: FitResponse | undefined
-  fitError: Error | null
-  running: boolean
-  runError: Error | null
-  onRun: () => void
-}) {
-  const noFitYet = fitError instanceof ApiError && fitError.status === 404
-
-  return (
-    <section className="workspace-card fit-panel">
-      <div className="card-heading">
-        <h3>Fit analysis</h3>
-        <button type="button" onClick={onRun} disabled={running}>{running ? 'Running...' : 'Run fit'}</button>
-      </div>
-      {runError ? <ErrorNotice error={runError} /> : null}
-      {fitError && !noFitYet ? <ErrorNotice error={fitError} /> : null}
-      {noFitYet && !fit ? <p className="muted">Run fit to create the analysis and requirements checklist.</p> : null}
-      {fit ? (
-        <>
-          <p>{fit.fit.summary}</p>
-          <FitPointList title="Strong matches" points={fit.fit.strong_matches.map((item) => item.point)} />
-          <FitPointList title="Weak matches" points={fit.fit.weak_matches.map((item) => item.point)} />
-          <FitPointList title="Unknowns" points={fit.fit.unknowns.map((item) => item.point)} />
-          <FitPointList title="Do not claim" points={fit.fit.do_not_claim} />
-          {fit.fit.risks_to_address.length > 0 ? (
-            <div className="risk-list">
-              <h4>Risks to address honestly</h4>
-              {fit.fit.risks_to_address.map((risk) => (
-                <article key={`${risk.risk}-${risk.honest_framing}`}>
-                  <strong>{risk.risk}</strong>
-                  <p>{risk.honest_framing}</p>
-                </article>
-              ))}
-            </div>
-          ) : null}
-        </>
-      ) : null}
-    </section>
-  )
-}
-
-function RequirementsPanel({
-  requirements,
-  evidence,
-  onOverride,
-  pending,
-  error,
-}: {
-  requirements: RequirementCheck[]
-  evidence: EvidenceChip[]
-  onOverride: (requirementId: string, userOverride: RequirementStatus | null) => void
-  pending: boolean
-  error: Error | null
-}) {
-  return (
-    <section className="workspace-card">
-      <h3>Requirements</h3>
-      {requirements.length === 0 ? <p className="muted">Requirements appear after fit runs.</p> : null}
-      <div className="requirements-list">
-        {requirements.map((requirement) => (
-          <article className="requirement-row" key={requirement.id}>
-            <div>
-              <strong>{requirement.requirement}</strong>
-              <span className={`requirement-status status-${effectiveStatus(requirement).toLowerCase()}`}>
-                {effectiveStatus(requirement)}
-              </span>
-            </div>
-            <EvidenceRefs refs={requirement.evidence} evidence={evidence} />
-            <label>
-              Override
-              <select
-                value={requirement.user_override ?? ''}
-                disabled={pending}
-                onChange={(event) =>
-                  onOverride(
-                    requirement.id,
-                    event.target.value === '' ? null : (event.target.value as RequirementStatus),
-                  )
-                }
-              >
-                <option value="">Use analysis</option>
-                {requirementStatuses.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </label>
-          </article>
-        ))}
-      </div>
-      {error ? <ErrorNotice error={error} /> : null}
-    </section>
-  )
-}
-
-function MatchedEvidence({ evidence, requirements }: { evidence: EvidenceChip[]; requirements: RequirementCheck[] }) {
-  const matchedRefs = new Set(requirements.flatMap((requirement) => requirement.evidence))
-  const sorted = [...evidence].sort((a, b) => Number(matchedRefs.has(b.ref)) - Number(matchedRefs.has(a.ref)))
-
-  return (
-    <section className="workspace-card">
-      <h3>Matched evidence</h3>
-      {sorted.length === 0 ? <p className="muted">Add profile skills, experiences, or projects to use as evidence.</p> : null}
-      <div className="matched-evidence-list">
-        {sorted.map((item) => (
-          <article className={matchedRefs.has(item.ref) ? 'matched-evidence matched-evidence-active' : 'matched-evidence'} key={item.ref}>
-            <strong>{item.label}</strong>
-            <span>{item.kind} - {item.detail}</span>
-          </article>
-        ))}
+        {link ? <a href={link} target="_blank" rel="noreferrer">Original posting →</a> : null}
       </div>
     </section>
   )
@@ -792,30 +619,14 @@ function FitPointList({ title, points }: { title: string; points: string[] }) {
   if (points.length === 0) {
     return null
   }
-
   return (
     <div className="fit-point-list">
       <h4>{title}</h4>
       <ul>
-        {points.map((point) => (
-          <li key={point}>{point}</li>
+        {points.map((point, index) => (
+          <li key={index}>{point}</li>
         ))}
       </ul>
-    </div>
-  )
-}
-
-function EvidenceRefs({ refs, evidence }: { refs: string[]; evidence: EvidenceChip[] }) {
-  if (refs.length === 0) {
-    return <p className="muted">No cited profile evidence.</p>
-  }
-
-  return (
-    <div className="evidence-ref-list">
-      {refs.map((ref) => {
-        const item = evidence.find((candidate) => candidate.ref === ref)
-        return <span key={ref}>{item ? item.label : ref}</span>
-      })}
     </div>
   )
 }
@@ -853,36 +664,6 @@ function formToBriefRequest(form: BriefForm) {
   }
 }
 
-function evidenceChips(profile: Profile | undefined): EvidenceChip[] {
-  if (!profile) {
-    return []
-  }
-
-  return [
-    ...profile.skills.map((skill) => ({
-      id: skill.id,
-      ref: `skill:${skill.id}`,
-      label: skill.name,
-      detail: [skill.kind, skill.level].filter(Boolean).join(' / '),
-      kind: 'skill' as const,
-    })),
-    ...profile.experiences.map((experience) => ({
-      id: experience.id,
-      ref: `experience:${experience.id}`,
-      label: experience.title,
-      detail: [experience.company, experience.tech.slice(0, 3).join(', ')].filter(Boolean).join(' / '),
-      kind: 'experience' as const,
-    })),
-    ...profile.projects.map((project) => ({
-      id: project.id,
-      ref: `project:${project.id}`,
-      label: project.name,
-      detail: [project.role, project.tech.slice(0, 3).join(', ')].filter(Boolean).join(' / '),
-      kind: 'project' as const,
-    })),
-  ]
-}
-
 function effectiveStatus(requirement: RequirementCheck) {
   return requirement.user_override ?? requirement.status
 }
@@ -890,11 +671,6 @@ function effectiveStatus(requirement: RequirementCheck) {
 function stringAt(source: unknown, path: Array<string | number>): string | null {
   const value = valueAt(source, path)
   return typeof value === 'string' && value.trim() ? value : null
-}
-
-function stringArrayAt(source: unknown, path: Array<string | number>): string[] {
-  const value = valueAt(source, path)
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }
 
 function valueAt(source: unknown, path: Array<string | number>): unknown {

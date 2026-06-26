@@ -248,6 +248,10 @@ export function patchApplication(id: string, input: ApplicationPatch): Promise<A
   })
 }
 
+export function deleteApplication(id: string): Promise<null> {
+  return apiRequest(`/api/applications/${id}`, { method: 'DELETE', schema: z.null() })
+}
+
 export function getApplicationBrief(applicationId: string): Promise<ApplicationBrief> {
   return apiRequest(`/api/applications/${applicationId}/brief`, { schema: applicationBriefSchema })
 }

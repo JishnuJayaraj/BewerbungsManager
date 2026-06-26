@@ -9,6 +9,7 @@ import {
   createProject,
   createSkill,
   createEducation,
+  deleteApplication,
   deleteEducation,
   deleteExperience,
   deleteProject,
@@ -212,6 +213,16 @@ export function usePatchApplicationMutation() {
     mutationFn: ({ id, input }: { id: string; input: ApplicationPatch }) => patchApplication(id, input),
     onSuccess: (application) => {
       queryClient.setQueryData(queryKeys.application(application.id), application)
+      queryClient.invalidateQueries({ queryKey: queryKeys.applications })
+    },
+  })
+}
+
+export function useDeleteApplicationMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => deleteApplication(id),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.applications })
     },
   })
