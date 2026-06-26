@@ -157,7 +157,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** LLM, profile, saving an application.
 - **Handoff note:** _Done. Search/jobs routers added with basic must/title-field builder, advanced passthrough, autocomplete, light de-dup, typed expired detail response, and SearchPreset CRUD preserving query JSON._
 
-### [ ] Task 05 — LLM layer + evidence-citation verifier (B)
+### [x] Task 05 — LLM layer + evidence-citation verifier (B)
 - **Depends on:** 01A.
 - **Inputs:** TECHNICAL §6, SPEC §6, §7 decisions 2 & 8; LLM_CONTRACTS.md (output schemas +
   "Citation verification" section, which defines the exact v1 rule).
@@ -175,7 +175,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   wrong-type id, and an `UNSUPPORTED` self-report, as UNSUPPORTED, and a valid existing ref as
   SUPPORTED.
 - **Not in this task:** the actual CV/fit/generate prompts (later tasks consume this layer).
-- **Handoff note:** _…_
+- **Handoff note:** _Done. LiteLLM wrapper added with per-task provider/model/key resolution, JSON validation plus one repair retry, deterministic v1 citation verifier, and focused tests._
 
 ---
 
