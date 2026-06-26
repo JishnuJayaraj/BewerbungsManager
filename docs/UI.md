@@ -5,14 +5,25 @@ screens exist, what each contains, and which API endpoints (see [API.md](./API.m
 Routing and layout decisions here are authoritative; styling is the implementer's discretion
 (see the `frontend-design` skill for polish).
 
-Global: top nav between **Profile · Search · Board**; a **Workspace** opens per application.
-A persistent **privacy/GDPR notice** (CV + job text are sent to the configured LLM provider; EU
-provider is the default) is shown on first use and in Settings (SPEC §9).
+Global: top nav between **Home · Profile · Search · Board** (+ Settings). The **Workspace** is
+contextual — it opens per application from a Board card, a Search result, or the Home overview;
+the bare `/workspace` route redirects to Board. A persistent **privacy/GDPR notice** (CV + job
+text are sent to the configured LLM provider; EU provider is the default) is shown on first use
+and in Settings (SPEC §9).
 
 ---
 
+## 0. Home / overview  (landing route `/`)
+- Hero + a **3-step guided journey**: Build profile → Find roles → Craft & track. Each step shows
+  done/active state and links to the relevant screen (derived from profile skills + applications).
+- **Stat tiles** (skills, saved roles, in progress) and a **recent applications** list linking
+  into each Workspace. Acts as the cold-start and re-entry hub.
+
 ## 1. Profile page  (Task 12 ← API: `/api/profile*`)
 - Paste-CV textarea → "Parse" (`POST /api/profile/parse`); shows parsed result to review/edit.
+- **Enrich with AI** panel: `POST /api/profile/enrich/questions` proposes targeted gap-filling
+  questions; the user answers and `POST /api/profile/enrich/apply` folds them back into the
+  profile (seniority/years/summary/target roles + new skills), showing what changed.
 - Editable sections: identity/headline/seniority/summary, **Skills**, **Experiences** (with
   editable bullets), **Projects**. Each section supports manual add/edit/delete (no parse needed).
 - **Brief defaults** editor (tone / language / target angle).

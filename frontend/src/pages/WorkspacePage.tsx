@@ -132,7 +132,10 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
           <p className="eyebrow">Workspace</p>
           <h2 id="workspace-title">{jobTitle || 'Application workspace'}</h2>
         </div>
-        <Link className="nav-link" to="/search">Back to search</Link>
+        <div className="row-actions">
+          <Link className="nav-link" to="/board">← Board</Link>
+          <Link className="nav-link" to="/search">Search</Link>
+        </div>
       </div>
 
       {application.isPending ? <p className="muted">Loading application...</p> : null}

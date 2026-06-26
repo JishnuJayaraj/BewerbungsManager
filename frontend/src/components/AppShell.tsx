@@ -3,25 +3,26 @@ import { ApiStatus } from './ApiStatus'
 import { PrivacyNotice } from './PrivacyNotice'
 
 const primaryNav = [
-  { to: '/profile', label: 'Profile' },
-  { to: '/search', label: 'Search' },
-  { to: '/board', label: 'Board' },
-  { to: '/workspace', label: 'Workspace' },
+  { to: '/', label: 'Home', end: true },
+  { to: '/profile', label: 'Profile', end: false },
+  { to: '/search', label: 'Search', end: false },
+  { to: '/board', label: 'Board', end: false },
 ]
 
 export function AppShell() {
   return (
     <div className="app-frame">
       <header className="app-header">
-        <div>
+        <NavLink to="/" className="brand-link" end>
           <p className="brand-kicker">JobCraft</p>
-          <h1 className="brand-title">Application package workspace</h1>
-        </div>
+          <h1 className="brand-title">Craft your application</h1>
+        </NavLink>
         <nav className="top-nav" aria-label="Primary">
           {primaryNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.end}
               className={({ isActive }) => (isActive ? 'nav-link nav-link-active' : 'nav-link')}
             >
               {item.label}

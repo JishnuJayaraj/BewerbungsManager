@@ -30,6 +30,11 @@ Companion to [TECHNICAL.md](./TECHNICAL.md) (data model) and
   editable). Parse failure → `200` with an empty editable profile + `"parse_warning"`.
 - `GET /api/profile` → `200 Profile`
 - `PUT /api/profile` — body partial Profile (incl. `brief_defaults`) → `200 Profile`
+- `POST /api/profile/enrich/questions` → `200 { "questions": [{ "key", "question", "purpose",
+  "field" }] }` — LLM proposes targeted gap-filling questions from the current profile.
+- `POST /api/profile/enrich/apply` — body `{ "answers": [{ "key", "question", "answer" }] }` →
+  `200 { "profile": Profile, "changes": [str], "added_skills": [str] }`. Folds answers into the
+  profile (seniority/years/summary/target_roles + non-duplicate skills). LLM error → `502`.
 - Skills:    `POST/PUT/DELETE /api/profile/skills[/{id}]`
 - Experience:`POST/PUT/DELETE /api/profile/experiences[/{id}]`
 - Projects:  `POST/PUT/DELETE /api/profile/projects[/{id}]`
