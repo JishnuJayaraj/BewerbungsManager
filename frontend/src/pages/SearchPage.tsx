@@ -1,25 +1,18 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router'
 import {
   ApiError,
   useBasicSearchMutation,
+  useCreateSearchPresetMutation,
+  useDeleteSearchPresetMutation,
   useJobDetailQuery,
   useSaveApplicationMutation,
-  useSuggestionsMutation,
+  useSearchPresetsQuery,
+  useSuggestionsQuery,
   type BasicSearchRequest,
   type JobDetail,
   type JobSummary,
 } from '../api'
-
-type LocationOption = { key: string; label: string; lat: number; lon: number }
-
-const locations: LocationOption[] = [
-  { key: 'berlin', label: 'Berlin', lat: 52.52, lon: 13.405 },
-  { key: 'munich', label: 'Munich', lat: 48.137, lon: 11.575 },
-  { key: 'hamburg', label: 'Hamburg', lat: 53.551, lon: 9.994 },
-  { key: 'cologne', label: 'Cologne', lat: 50.938, lon: 6.96 },
-  { key: 'frankfurt', label: 'Frankfurt', lat: 50.11, lon: 8.682 },
-]
 
 const jobTypeOptions = [
   { value: 'OCCUPATION', label: 'Regular role' },
@@ -34,14 +27,23 @@ const employmentTypeOptions = [
   { value: 'MINI_JOB', label: 'Mini job' },
 ]
 
+function splitPlaces(value: string): string[] {
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+}
+
 export function SearchPage() {
-  const suggestions = useSuggestionsMutation()
+  const suggestions = useSuggestionsQuery()
   const search = useBasicSearchMutation()
   const save = useSaveApplicationMutation()
+  const presets = useSearchPresetsQuery()
+  const createPreset = useCreateSearchPresetMutation()
+  const deletePreset = useDeleteSearchPresetMutation()
 
   const [phrase, setPhrase] = useState('')
-  const [locationKey, setLocationKey] = useState('')
-  const [radiusKm, setRadiusKm] = useState('30')
+  const [placesText, setPlacesText] = useState('')
   const [jobTypes, setJobTypes] = useState<string[]>([])
   const [employmentTypes, setEmploymentTypes] = useState<string[]>([])
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -51,20 +53,10 @@ export function SearchPage() {
 
   const detail = useJobDetailQuery(selectedJobUuid)
 
-  // Lead with AI recommendations on first load.
-  const askedRef = useRef(false)
-  useEffect(() => {
-    if (!askedRef.current) {
-      askedRef.current = true
-      suggestions.mutate()
-    }
-  }, [suggestions])
-
-  function buildRequest(searchPhrase: string): BasicSearchRequest {
-    const loc = locations.find((item) => item.key === locationKey)
+  function buildRequest(searchPhrase: string, places: string[]): BasicSearchRequest {
     return {
       phrase: searchPhrase.trim() || undefined,
-      location: loc ? { lat: loc.lat, lon: loc.lon, radius_km: Number(radiusKm) || 30 } : undefined,
+      places,
       job_types: jobTypes,
       employment_types: employmentTypes,
       page: 1,
@@ -72,27 +64,37 @@ export function SearchPage() {
     }
   }
 
-  function runSearch(searchPhrase: string, role: string | null) {
+  function runSearch(searchPhrase: string, places: string[], role: string | null) {
     setActiveRole(role)
     setSelectedJobUuid(null)
     setSavedId(null)
-    search.mutate(buildRequest(searchPhrase))
+    search.mutate(buildRequest(searchPhrase, places))
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (phrase.trim().length === 0) return
-    runSearch(phrase, null)
+    runSearch(phrase, splitPlaces(placesText), null)
   }
 
   function explore(role: string, searchPhrase: string) {
     setPhrase(searchPhrase)
-    runSearch(searchPhrase, role)
+    runSearch(searchPhrase, splitPlaces(placesText), role)
   }
 
-  function selectJob(uuid: string) {
-    setSelectedJobUuid(uuid)
-    setSavedId(null)
+  const savedRoleNames = new Set((presets.data?.items ?? []).map((preset) => preset.name.toLowerCase()))
+
+  function bookmarkRole(role: string, searchPhrase: string) {
+    if (savedRoleNames.has(role.toLowerCase())) return
+    createPreset.mutate({ name: role, query_json: { phrase: searchPhrase, places: splitPlaces(placesText) } })
+  }
+
+  function exploreSaved(name: string, query: Record<string, unknown>) {
+    const savedPhrase = typeof query.phrase === 'string' ? query.phrase : name
+    const savedPlaces = Array.isArray(query.places) ? query.places.map(String) : []
+    setPhrase(savedPhrase)
+    if (savedPlaces.length > 0) setPlacesText(savedPlaces.join(', '))
+    runSearch(savedPhrase, savedPlaces, name)
   }
 
   function saveJob() {
@@ -102,7 +104,9 @@ export function SearchPage() {
 
   const result = search.data
   const cards = suggestions.data?.suggestions ?? []
+  const savedRoles = presets.data?.items ?? []
   const selectedSummary = result?.jobs.find((job) => job.uuid === selectedJobUuid) ?? null
+  const loadingSuggestions = suggestions.isPending || suggestions.isFetching
 
   return (
     <section className="discover-layout" aria-labelledby="discover-title">
@@ -111,7 +115,7 @@ export function SearchPage() {
         <h2 id="discover-title">Find your next role</h2>
         <p className="section-copy">
           Start from roles the assistant thinks fit you, explore the live market, and bookmark the
-          jobs worth pursuing — they land on your Board.
+          roles and jobs worth pursuing — they land on your Board.
         </p>
       </div>
 
@@ -120,68 +124,83 @@ export function SearchPage() {
         <div className="card-heading">
           <div>
             <h3>Roles that fit you</h3>
-            <p className="muted" style={{ margin: '4px 0 0' }}>Generated from your profile. Click one to explore real openings.</p>
+            <p className="muted" style={{ margin: '4px 0 0' }}>Generated from your profile. Click to explore, ☆ to bookmark.</p>
           </div>
-          <button type="button" className="secondary-button" onClick={() => suggestions.mutate()} disabled={suggestions.isPending}>
-            {suggestions.isPending ? 'Thinking…' : 'Refresh'}
+          <button type="button" className="secondary-button" onClick={() => suggestions.refetch()} disabled={loadingSuggestions}>
+            {loadingSuggestions ? 'Thinking…' : 'Refresh'}
           </button>
         </div>
 
-        {suggestions.isPending ? <p className="muted">Looking at your profile…</p> : null}
+        {loadingSuggestions && cards.length === 0 ? <p className="muted">Looking at your profile…</p> : null}
         {suggestions.isError ? (
-          <div className="notice notice-error">
-            Couldn't generate recommendations right now. Add more to your profile or try refreshing.
-          </div>
+          <div className="notice notice-error">Couldn't generate recommendations right now. Build your profile, then refresh.</div>
         ) : null}
-        {!suggestions.isPending && cards.length === 0 && !suggestions.isError ? (
+        {!loadingSuggestions && cards.length === 0 && !suggestions.isError ? (
           <p className="muted">No recommendations yet — build your profile first, then refresh.</p>
         ) : null}
 
         <div className="rec-grid">
-          {cards.map((card) => (
-            <button
-              key={card.role}
-              type="button"
-              className={activeRole === card.role ? 'rec-card rec-card-active' : 'rec-card'}
-              onClick={() => explore(card.role, card.phrase)}
-            >
-              <strong>{card.role}</strong>
-              {card.rationale ? <span className="rec-why">{card.rationale}</span> : null}
-              {card.skills.length > 0 ? (
-                <span className="rec-skills">
-                  {card.skills.slice(0, 5).map((skill) => (
-                    <span className="rec-skill" key={skill}>{skill}</span>
-                  ))}
-                </span>
-              ) : null}
-              <span className="rec-cta">Explore openings →</span>
-            </button>
-          ))}
+          {cards.map((card) => {
+            const bookmarked = savedRoleNames.has(card.role.toLowerCase())
+            return (
+              <div key={card.role} className={activeRole === card.role ? 'rec-card rec-card-active' : 'rec-card'}>
+                <button
+                  type="button"
+                  className="rec-bookmark"
+                  title={bookmarked ? 'Bookmarked' : 'Bookmark this role'}
+                  aria-label={bookmarked ? 'Bookmarked' : 'Bookmark this role'}
+                  onClick={() => bookmarkRole(card.role, card.phrase)}
+                  disabled={bookmarked || createPreset.isPending}
+                >
+                  {bookmarked ? '★' : '☆'}
+                </button>
+                <button type="button" className="rec-body" onClick={() => explore(card.role, card.phrase)}>
+                  <strong>{card.role}</strong>
+                  {card.rationale ? <span className="rec-why">{card.rationale}</span> : null}
+                  {card.skills.length > 0 ? (
+                    <span className="rec-skills">
+                      {card.skills.slice(0, 5).map((skill) => (
+                        <span className="rec-skill" key={skill}>{skill}</span>
+                      ))}
+                    </span>
+                  ) : null}
+                  <span className="rec-cta">Explore openings →</span>
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
+
+      {/* ── Saved roles ─────────────────────────────── */}
+      {savedRoles.length > 0 ? (
+        <div className="page-section saved-roles">
+          <div className="card-heading">
+            <h3>Saved roles</h3>
+            <span className="muted">{savedRoles.length} bookmarked</span>
+          </div>
+          <div className="chip-row">
+            {savedRoles.map((preset) => (
+              <span className="saved-role-chip" key={preset.id}>
+                <button type="button" onClick={() => exploreSaved(preset.name, preset.query_json)}>{preset.name}</button>
+                <button type="button" className="saved-role-remove" aria-label={`Remove ${preset.name}`} onClick={() => deletePreset.mutate(preset.id)}>×</button>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* ── Search bar ──────────────────────────────── */}
       <form className="page-section search-bar" onSubmit={submit}>
         <div className="search-bar-row">
           <label className="search-bar-phrase">
             Search roles or keywords
-            <input value={phrase} onChange={(event) => setPhrase(event.target.value)} placeholder="e.g. MLOps Engineer, Python, Berlin…" />
+            <input value={phrase} onChange={(event) => setPhrase(event.target.value)} placeholder="e.g. Data Analyst, Python…" />
           </label>
-          <label>
-            Location
-            <select value={locationKey} onChange={(event) => setLocationKey(event.target.value)}>
-              <option value="">Anywhere</option>
-              {locations.map((loc) => (
-                <option key={loc.key} value={loc.key}>{loc.label}</option>
-              ))}
-            </select>
+          <label className="search-bar-place">
+            City (comma-separate for nearby)
+            <input value={placesText} onChange={(event) => setPlacesText(event.target.value)} placeholder="Nürnberg, Fürth, Erlangen" />
           </label>
-          {locationKey ? (
-            <label className="search-bar-radius">
-              Radius km
-              <input type="number" value={radiusKm} onChange={(event) => setRadiusKm(event.target.value)} />
-            </label>
-          ) : null}
           <button type="submit" disabled={search.isPending || phrase.trim().length === 0}>
             {search.isPending ? 'Searching…' : 'Search'}
           </button>
@@ -190,6 +209,16 @@ export function SearchPage() {
           <button type="button" className="link-toggle" onClick={() => setFiltersOpen((open) => !open)}>
             {filtersOpen ? 'Hide filters' : 'Filters'}
           </button>
+          {phrase.trim().length > 0 ? (
+            <button
+              type="button"
+              className="link-toggle"
+              onClick={() => bookmarkRole(phrase.trim(), phrase.trim())}
+              disabled={savedRoleNames.has(phrase.trim().toLowerCase()) || createPreset.isPending}
+            >
+              ☆ Bookmark this role
+            </button>
+          ) : null}
         </div>
         {filtersOpen ? (
           <div className="search-filters">
@@ -209,14 +238,14 @@ export function SearchPage() {
               <h3>{activeRole ?? 'Results'}</h3>
               <span>{result.hits.toLocaleString()} matches</span>
             </div>
-            {result.jobs.length === 0 ? <p className="muted">No openings matched. Try a broader phrase or remove filters.</p> : null}
+            {result.jobs.length === 0 ? <p className="muted">No openings matched. Try a broader phrase, fewer cities, or remove filters.</p> : null}
             <div className="job-list">
               {result.jobs.map((job) => (
                 <button
                   key={job.uuid}
                   type="button"
                   className={job.uuid === selectedJobUuid ? 'job-row job-row-active' : 'job-row'}
-                  onClick={() => selectJob(job.uuid)}
+                  onClick={() => { setSelectedJobUuid(job.uuid); setSavedId(null) }}
                 >
                   <strong>{job.title ?? 'Untitled role'}</strong>
                   <span>{[job.company, job.place].filter(Boolean).join(' · ') || '—'}</span>

@@ -145,6 +145,9 @@ def build_basic_search_body(request: BasicSearchRequest) -> SearchBody:
                 "distance": request.location.radius_km,
             }
         )
+    places = [place.strip() for place in request.places if place.strip()]
+    if places:
+        filters.append({"type": "text", "field": "addresses.place", "in": places})
     if request.job_types:
         filters.append(
             {

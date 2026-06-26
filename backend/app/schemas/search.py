@@ -18,6 +18,7 @@ class LocationFilter(BaseModel):
 class BasicSearchRequest(BaseModel):
     phrase: str | None = None
     location: LocationFilter | None = None
+    places: list[str] = Field(default_factory=list)  # free-text city names (any of)
     job_types: list[str] = Field(default_factory=list)
     employment_types: list[str] = Field(default_factory=list)
     page: int = Field(default=1, ge=1)

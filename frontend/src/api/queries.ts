@@ -182,6 +182,15 @@ export function useSuggestionsMutation() {
   })
 }
 
+export function useSuggestionsQuery() {
+  return useQuery({
+    queryKey: ['suggestions'] as const,
+    queryFn: getSuggestions,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+}
+
 export function useApplicationsQuery() {
   return useQuery({
     queryKey: queryKeys.applications,

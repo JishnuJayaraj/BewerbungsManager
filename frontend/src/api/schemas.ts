@@ -27,6 +27,7 @@ export const locationFilterSchema = z.object({
 export const basicSearchRequestSchema = z.object({
   phrase: z.string().optional(),
   location: locationFilterSchema.optional(),
+  places: z.array(z.string()).default([]),
   job_types: z.array(z.string()).default([]),
   employment_types: z.array(z.string()).default([]),
   page: z.number().int().positive().default(1),

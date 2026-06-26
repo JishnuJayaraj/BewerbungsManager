@@ -1946,18 +1946,12 @@ a {
 }
 
 .rec-card {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-  align-content: start;
-  text-align: left;
-  min-height: 132px;
+  position: relative;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
-  color: var(--ink);
-  padding: 16px;
   box-shadow: var(--shadow-sm);
+  transition: transform 0.14s ease, box-shadow 0.18s ease, border-color 0.16s ease;
 }
 
 .rec-card:hover {
@@ -1969,6 +1963,90 @@ a {
 .rec-card-active {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent-tint-2), var(--shadow-md);
+}
+
+.rec-body {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  align-content: start;
+  text-align: left;
+  width: 100%;
+  min-height: 132px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 16px 40px 16px 16px;
+  box-shadow: none;
+}
+
+.rec-body:hover {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.rec-bookmark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  min-height: 30px;
+  width: 30px;
+  padding: 0;
+  border-color: var(--line);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-size: 1.05rem;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.rec-bookmark:hover {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+  transform: none;
+}
+
+.rec-bookmark:disabled {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.saved-role-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--accent-tint-2);
+  border-radius: 999px;
+  background: var(--accent-tint);
+  overflow: hidden;
+}
+
+.saved-role-chip > button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent-ink);
+  padding: 5px 6px 5px 13px;
+  font-weight: 600;
+  font-size: 0.86rem;
+  box-shadow: none;
+}
+
+.saved-role-chip > button:hover {
+  background: var(--accent-tint-2);
+  transform: none;
+}
+
+.saved-role-remove {
+  padding: 5px 11px 5px 6px !important;
+  color: var(--ink-muted) !important;
+  font-size: 1rem !important;
+}
+
+.search-bar-row:has(.search-bar-place) {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
 }
 
 .rec-card strong {
