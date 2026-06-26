@@ -280,14 +280,14 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** feature screens.
 - **Handoff note:** _Done. Typed Zod API client + TanStack query hooks added for health/settings/basic search and API errors; app shell/nav routes Profile/Search/Board/Workspace/Settings; settings/privacy notice is live from `/api/settings`; Vite proxy verified against backend._
 
-### [ ] Task 12 — Profile editor UI (F)
+### [x] Task 12 — Profile editor UI (F)
 - **Depends on:** 06, 11.
 - **Inputs:** SPEC §5.1; UI.md §1 (Profile page); API.md (`/api/profile*`).
 - **Scope:** paste-CV box → parse → editable profile (skills/experiences/projects, bullets editable),
   `brief_defaults` editor. Manual add/edit always available.
 - **Done when:** user can paste a CV, review/edit parsed data, and save; manual editing works with
   no parse.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Profile page now loads/saves identity + brief defaults, parses pasted CV into editable state, and supports manual create/update/delete for skills, experiences with bullets, and projects via typed API hooks._
 
 ### [ ] Task 13 — Search UI + save job (F)
 - **Depends on:** 04, 07 (save-to-board: `POST /api/applications`), 10 (`/api/suggestions`), 11.
@@ -367,7 +367,7 @@ Update as tasks complete (mirror the checkboxes above):
 - [x] 09 Artifact generation
 - [x] 10 Package checklist + suggestions
 - [x] 11 Frontend foundation
-- [ ] 12 Profile editor UI
+- [x] 12 Profile editor UI
 - [ ] 13 Search UI + save job
 - [ ] 14 Workspace UI
 - [ ] 15 Artifacts UI

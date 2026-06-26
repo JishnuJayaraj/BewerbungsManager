@@ -40,6 +40,21 @@ button:hover {
   background: #3a473f;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.secondary-button {
+  border-color: #c8d0c6;
+  background: #ffffff;
+  color: #28342d;
+}
+
+.secondary-button:hover {
+  background: #f6f7f3;
+}
+
 input {
   min-height: 40px;
   width: 100%;
@@ -48,6 +63,24 @@ input {
   background: #ffffff;
   color: #1d2520;
   padding: 8px 10px;
+}
+
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #c4cbc1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1d2520;
+  padding: 8px 10px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+select {
+  min-height: 40px;
 }
 
 h2,
@@ -152,6 +185,90 @@ p {
 .section-heading {
   max-width: 720px;
   margin-bottom: 24px;
+}
+
+.profile-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.profile-card {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #d8ddd2;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: clamp(18px, 3vw, 24px);
+}
+
+.profile-card-wide {
+  width: 100%;
+}
+
+.card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-heading h3 {
+  margin: 0;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profile-card label,
+.compact-editor label,
+.stacked-editor label {
+  display: grid;
+  gap: 6px;
+  color: #405049;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.compact-editor {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 180px) minmax(140px, 180px) auto;
+  align-items: end;
+  gap: 12px;
+  border-top: 1px solid #e6eae3;
+  padding-top: 14px;
+}
+
+.stacked-editor {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid #e6eae3;
+  padding-top: 14px;
+}
+
+.editor-list {
+  display: grid;
+  gap: 14px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.checkbox-field {
+  display: inline-flex;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.checkbox-field input {
+  width: auto;
+  min-height: auto;
 }
 
 .section-heading h2,
@@ -293,7 +410,9 @@ p {
 @media (max-width: 760px) {
   .app-header,
   .settings-grid,
-  .inline-form {
+  .inline-form,
+  .field-grid,
+  .compact-editor {
     grid-template-columns: 1fr;
   }
 
