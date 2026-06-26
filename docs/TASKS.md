@@ -181,7 +181,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 
 ## Phase 2 — Backend LLM features
 
-### [ ] Task 06 — Profile: paste-CV parsing + profile CRUD (B)
+### [x] Task 06 — Profile: paste-CV parsing + profile CRUD (B)
 - **Depends on:** 02, 05.
 - **Inputs:** SPEC §5.1, TECHNICAL §4 (Profile/Skill/Experience/Project), §6 (`cv_parse`);
   API.md (`/api/profile*`); LLM_CONTRACTS.md §1 (`cv_parse` schema).
@@ -192,7 +192,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Done when:** posting CV text yields a structured, editable profile; manual create/edit of each
   entity works; `brief_defaults` persist; parsing failure degrades to an empty editable profile.
 - **Not in this task:** PDF/DOCX upload (non-goal v1); any job/workspace logic.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. CV parser service, profile router, profile schemas, manual profile/skill/experience/project CRUD, brief_defaults persistence, and parse-failure fallback tests added._
 
 ### [ ] Task 07 — Save job → application, brief, comms (B)
 - **Depends on:** 02, 04.
