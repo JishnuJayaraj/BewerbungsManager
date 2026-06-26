@@ -74,18 +74,21 @@ export function ChecklistSummary({ applicationId }: { applicationId: string }) {
 
   const done = completedItems(checklist.data)
   const total = itemLabels.length
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
   return (
-    <div className="checklist-summary">
-      <div>
-        <strong>{done}/{total}</strong>
-        <span>ready</span>
+    <div className="card-progress">
+      <div className="card-progress-bar" aria-label={`${done} of ${total} ready`}>
+        <span style={{ width: `${pct}%` }} />
       </div>
-      {checklist.data.language_level_required ? (
-        <span className={checklist.data.items.language_ok ? 'mini-pill mini-pill-ok' : 'mini-pill mini-pill-warn'}>
-          {checklist.data.language_level_user || 'unknown'} / {checklist.data.language_level_required}
-        </span>
-      ) : null}
+      <div className="card-progress-meta">
+        <span className="muted">{done}/{total} ready</span>
+        {checklist.data.language_level_required ? (
+          <span className={checklist.data.items.language_ok ? 'mini-pill mini-pill-ok' : 'mini-pill mini-pill-warn'}>
+            {checklist.data.language_level_user || '?'} / {checklist.data.language_level_required}
+          </span>
+        ) : null}
+      </div>
     </div>
   )
 }

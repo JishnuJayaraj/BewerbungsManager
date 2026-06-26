@@ -210,16 +210,18 @@ function KanbanCard({
         selected ? 'kanban-card-selected' : '',
         isDragging ? 'kanban-card-dragging' : '',
       ].filter(Boolean).join(' ')}
+      onClick={onSelect}
+      {...attributes}
+      {...listeners}
     >
-      <button type="button" className="drag-handle" {...attributes} {...listeners} aria-label="Drag card">
-        Drag
-      </button>
-      <button type="button" className="kanban-card-body" onClick={onSelect}>
-        <strong>{application.job_title || 'Untitled role'}</strong>
-        <span>{application.company ?? 'Company not listed'}</span>
-        {application.next_action ? <em>{application.next_action}</em> : <small>No next action</small>}
-        {application.followup_date ? <small>Follow up {application.followup_date}</small> : null}
-      </button>
+      <strong className="kanban-card-title">{application.job_title || 'Untitled role'}</strong>
+      <span className="kanban-card-company">{application.company ?? 'Company not listed'}</span>
+      {application.next_action ? (
+        <span className="kanban-card-action">→ {application.next_action}</span>
+      ) : null}
+      {application.followup_date ? (
+        <span className="kanban-card-followup">📅 {application.followup_date}</span>
+      ) : null}
       <ChecklistSummary applicationId={application.id} />
     </article>
   )
@@ -236,8 +238,21 @@ function BoardDetail({ application }: { application: Application }) {
             <h3>{application.job_title}</h3>
             <p className="muted">{application.company ?? 'Company not listed'}</p>
           </div>
-          <Link className="nav-link" to={`/workspace/${application.id}`}>Workspace</Link>
+          <Link className="cta-link cta-link-quiet" to={`/workspace/${application.id}`}>Open workspace →</Link>
         </div>
+        <label className="stage-select">
+          Stage
+          <select
+            value={application.status}
+            onChange={(event) =>
+              patchApplication.mutate({ id: application.id, input: { status: event.target.value as ApplicationStatus } })
+            }
+          >
+            {columns.map((column) => (
+              <option key={column.status} value={column.status}>{column.label}</option>
+            ))}
+          </select>
+        </label>
         <NextActionForm
           application={application}
           saving={patchApplication.isPending}
@@ -245,8 +260,19 @@ function BoardDetail({ application }: { application: Application }) {
           onSave={(input) => patchApplication.mutate({ id: application.id, input })}
         />
       </section>
-      <PackageChecklistPanel applicationId={application.id} compact />
-      <CommsLogPanel applicationId={application.id} compact />
+
+      <details className="board-accordion">
+        <summary>
+          <span>Germany package checklist</span>
+          <ChecklistSummary applicationId={application.id} />
+        </summary>
+        <PackageChecklistPanel applicationId={application.id} compact />
+      </details>
+
+      <details className="board-accordion">
+        <summary><span>Communication log</span></summary>
+        <CommsLogPanel applicationId={application.id} compact />
+      </details>
     </div>
   )
 }
