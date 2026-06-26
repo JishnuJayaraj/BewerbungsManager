@@ -213,7 +213,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** fit analysis, generation, checklist (Task 10), board UI.
 - **Handoff note:** _Done. Applications router added with save/snapshot/idempotency, list/get/patch/delete, brief prefill/update, comms log CRUD, schemas, and route tests._
 
-### [ ] Task 08 — Fit analysis + requirements checklist (B)
+### [x] Task 08 — Fit analysis + requirements checklist (B)
 - **Depends on:** 05, 06, 07.
 - **Inputs:** SPEC §5.3–5.4, §6 mode 3; TECHNICAL §6 (single `fit` call), §4 (RequirementCheck);
   API.md (`.../fit`, `.../requirements/*`); LLM_CONTRACTS.md §3 (`fit` schema).
@@ -226,7 +226,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Done when:** running fit on a saved job returns explanation (not a score) + a checklist matched
   to the profile; evidence refs point at real profile entities; re-running creates a new version.
 - **Not in this task:** cover letter / CV bullets / portal answers.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Fit service/router added with single-call fit schema, FIT_ANALYSIS artifact versioning, RequirementCheck replacement/override, profile-evidence filtering, and route tests._
 
 ### [ ] Task 09 — Artifact generation (CV bullets, cover letter, portal answers) (B)
 - **Depends on:** 05, 07, 08.
