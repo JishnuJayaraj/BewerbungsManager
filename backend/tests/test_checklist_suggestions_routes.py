@@ -44,24 +44,11 @@ class FakeSuggestService:
 
     async def run(self, inputs: SuggestInputs) -> SuggestResponse:
         self.inputs.append(inputs)
-        search = {
-            "queries": [
-                {
-                    "type": "single",
-                    "fields": ["text.title", "text.fulltext"],
-                    "phrase": "Python backend",
-                    "queryType": "should",
-                }
-            ],
-            "filters": [],
-            "page": 1,
-            "size": 20,
-        }
         return SuggestResponse(
             suggestions=[
-                JobSuggestion(role="Backend Engineer", rationale="Python API background.", search=search),
-                JobSuggestion(role="Platform Engineer", rationale="Infrastructure experience.", search=search),
-                JobSuggestion(role="Data Engineer", rationale="Python data skills.", search=search),
+                JobSuggestion(role="Backend Engineer", rationale="Python API background.", phrase="Python backend", skills=["Python", "FastAPI"]),
+                JobSuggestion(role="Platform Engineer", rationale="Infrastructure experience.", phrase="Platform Engineer", skills=["Kubernetes"]),
+                JobSuggestion(role="Data Engineer", rationale="Python data skills.", phrase="Data Engineer Python", skills=["SQL"]),
             ]
         )
 
@@ -136,16 +123,18 @@ def test_checklist_auto_creates_prefills_language_gap_and_persists(tmp_path) -> 
     assert updated.json()["notes"] == "Need Zeugnisse."
 
 
-def test_suggestions_return_searches_accepted_by_advanced_search(tmp_path) -> None:
+def test_suggestions_return_runnable_phrases(tmp_path) -> None:
     client, hr4u_client, suggest_service, _ = make_client(tmp_path)
     seed_application(client)
 
     suggestions = client.post("/api/suggestions")
-    first_search = suggestions.json()["suggestions"][0]["search"]
-    replayed = client.post("/api/search/advanced", json=first_search)
+    cards = suggestions.json()["suggestions"]
+    first = cards[0]
+    replayed = client.post("/api/search/basic", json={"phrase": first["phrase"]})
 
     assert suggestions.status_code == 200
-    assert len(suggestions.json()["suggestions"]) == 3
+    assert len(cards) == 3
+    assert first["role"] == "Backend Engineer" and first["phrase"] == "Python backend"
+    assert first["skills"] == ["Python", "FastAPI"]
     assert suggest_service.inputs[0].profile["skills"][0]["name"] == "Python"
     assert replayed.status_code == 200
-    assert hr4u_client.search_bodies[0] == first_search

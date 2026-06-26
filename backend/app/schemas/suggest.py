@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
-
-from app.schemas.hr4u import SearchBody
+from pydantic import BaseModel, Field, model_validator
 
 
 class SuggestInputs(BaseModel):
@@ -12,24 +10,39 @@ class SuggestInputs(BaseModel):
 
 
 class JobSuggestion(BaseModel):
-    role: str = Field(min_length=1)
-    rationale: str = Field(min_length=1)
-    search: SearchBody
+    """A role the profile fits — used as a discovery card the user can explore."""
 
-    @field_validator("search")
+    role: str = ""
+    rationale: str = ""
+    phrase: str = ""  # search keywords to explore this role on the job boards
+    skills: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
     @classmethod
-    def validate_search_body(cls, value: SearchBody) -> SearchBody:
-        queries = value.get("queries")
-        if not isinstance(queries, list) or not queries:
-            raise ValueError("search.queries must contain at least one query")
-        page = value.get("page", 1)
-        size = value.get("size", 20)
-        if not isinstance(page, int) or page < 1:
-            raise ValueError("search.page must be a positive integer")
-        if not isinstance(size, int) or not 1 <= size <= 100:
-            raise ValueError("search.size must be between 1 and 100")
-        return value
+    def _coerce(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        out = dict(data)
+        out["role"] = out.get("role") or out.get("title") or out.get("name") or ""
+        out["rationale"] = out.get("rationale") or out.get("reason") or out.get("why") or ""
+
+        phrase: Any = out.get("phrase") or out.get("query") or out.get("keywords")
+        if not phrase:
+            # Fall back to a possibly-nested search body, then the role title.
+            search = out.get("search")
+            if isinstance(search, dict):
+                phrase = search.get("phrase") or search.get("query")
+            phrase = phrase or out.get("role") or out.get("title") or ""
+        if isinstance(phrase, list):
+            phrase = " ".join(str(p) for p in phrase)
+        out["phrase"] = str(phrase or "")
+
+        skills: Any = out.get("skills") or out.get("key_skills") or out.get("required_skills") or []
+        if isinstance(skills, str):
+            skills = [skills]
+        out["skills"] = [str(s) for s in skills] if isinstance(skills, list) else []
+        return out
 
 
 class SuggestResponse(BaseModel):
-    suggestions: list[JobSuggestion] = Field(default_factory=list, min_length=3, max_length=8)
+    suggestions: list[JobSuggestion] = Field(default_factory=list, max_length=12)

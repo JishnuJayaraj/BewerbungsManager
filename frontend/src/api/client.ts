@@ -32,6 +32,7 @@ import {
   searchPresetSchema,
   searchResponseSchema,
   settingsSchema,
+  suggestResponseSchema,
   skillInputSchema,
   skillSchema,
   skillUpdateSchema,
@@ -67,6 +68,7 @@ import {
   type ExperienceUpdate,
   type Health,
   type JobDetail,
+  type JobSuggestion,
   type Profile,
   type ProfileUpdate,
   type Project,
@@ -372,18 +374,10 @@ function filenameFromDisposition(value: string): string | null {
   return match?.[1] ?? null
 }
 
-export function getSuggestions(): Promise<{ suggestions: Array<{ role: string; rationale: string; search: SearchBody }> }> {
+export function getSuggestions(): Promise<{ suggestions: JobSuggestion[] }> {
   return apiRequest('/api/suggestions', {
     method: 'POST',
-    schema: z.object({
-      suggestions: z.array(
-        z.object({
-          role: z.string(),
-          rationale: z.string(),
-          search: searchBodySchema,
-        }),
-      ),
-    }),
+    schema: suggestResponseSchema,
   })
 }
 

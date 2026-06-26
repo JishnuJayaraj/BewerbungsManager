@@ -386,8 +386,9 @@ export const commsLogCreateSchema = z.object({
 
 export const jobSuggestionSchema = z.object({
   role: z.string(),
-  rationale: z.string(),
-  search: searchBodySchema,
+  rationale: z.string().default(''),
+  phrase: z.string(),
+  skills: z.array(z.string()).default([]),
 })
 
 export const suggestResponseSchema = z.object({

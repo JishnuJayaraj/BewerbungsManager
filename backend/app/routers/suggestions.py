@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.db import get_session, seed_local_user
@@ -23,7 +23,14 @@ async def suggest_jobs(
     service: SuggestService = Depends(get_suggest_service),
 ) -> SuggestResponse:
     user = seed_local_user(session)
-    return await service.run(_suggest_inputs(session, user.id))
+    inputs = _suggest_inputs(session, user.id)
+    try:
+        return await service.run(inputs)
+    except Exception as exc:  # noqa: BLE001 — clean 502 instead of a 500
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "upstream_llm_error", "message": "Could not generate role suggestions."},
+        ) from exc
 
 
 def _suggest_inputs(session: Session, user_id: uuid.UUID) -> SuggestInputs:

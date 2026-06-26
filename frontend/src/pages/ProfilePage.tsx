@@ -220,32 +220,6 @@ export function ProfilePage() {
         </>
       ) : null}
 
-      <form className="profile-card profile-card-wide" onSubmit={saveProfile}>
-        <div className="card-heading">
-          <div>
-            <h3>Application defaults</h3>
-            <p className="muted" style={{ margin: '4px 0 0' }}>
-              Starting point for every job's cover letter &amp; answers — you can still tweak the
-              tone, language and angle per application in its Workspace.
-            </p>
-          </div>
-          <button type="submit" disabled={updateProfile.isPending || profile.isPending}>
-            {updateProfile.isPending ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-        <div className="field-grid">
-          <TextField label="Tone" value={form.default_tone} onChange={(value) => setFormField(setForm, 'default_tone', value)} />
-          <label>
-            Language
-            <select value={form.default_language} onChange={(event) => setFormField(setForm, 'default_language', event.target.value)}>
-              <option value="DE">German</option>
-              <option value="EN">English</option>
-            </select>
-          </label>
-          <TextField label="Positioning angle" value={form.default_target_angle} onChange={(value) => setFormField(setForm, 'default_target_angle', value)} />
-        </div>
-      </form>
-
       {enrichOpen ? <EnrichModal onClose={() => setEnrichOpen(false)} hasProfile={Boolean(profile.data)} /> : null}
     </section>
   )

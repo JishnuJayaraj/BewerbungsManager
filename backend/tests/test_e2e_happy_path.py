@@ -124,18 +124,11 @@ class FakeGenerateService:
 
 class FakeSuggestService:
     async def run(self, inputs: SuggestInputs) -> SuggestResponse:
-        search = {
-            "queries": [
-                {"type": "single", "fields": ["text.title", "text.fulltext"], "phrase": "Python", "queryType": "must"}
-            ],
-            "page": 1,
-            "size": 20,
-        }
         return SuggestResponse(
             suggestions=[
-                JobSuggestion(role="Backend Engineer", rationale="Python depth", search=dict(search)),
-                JobSuggestion(role="Platform Engineer", rationale="Distributed systems", search=dict(search)),
-                JobSuggestion(role="Data Engineer", rationale="Python + pipelines", search=dict(search)),
+                JobSuggestion(role="Backend Engineer", rationale="Python depth", phrase="Python", skills=["Python"]),
+                JobSuggestion(role="Platform Engineer", rationale="Distributed systems", phrase="Platform Engineer", skills=["Kubernetes"]),
+                JobSuggestion(role="Data Engineer", rationale="Python + pipelines", phrase="Data Engineer", skills=["SQL"]),
             ]
         )
 
@@ -264,8 +257,8 @@ def test_full_application_happy_path(tmp_path) -> None:
     assert card["status"] == "APPLIED"
     assert card["next_action"] == "Follow up with hiring manager"
 
-    # 11. Suggestions are runnable: feed one straight into advanced search.
+    # 11. Suggestions are runnable: feed one's phrase straight into basic search.
     suggestions = client.post("/api/suggestions").json()["suggestions"]
     assert len(suggestions) >= 3
-    replay = client.post("/api/search/advanced", json=suggestions[0]["search"])
+    replay = client.post("/api/search/basic", json={"phrase": suggestions[0]["phrase"]})
     assert replay.status_code == 200 and replay.json()["jobs"][0]["uuid"] == JOB_UUID
