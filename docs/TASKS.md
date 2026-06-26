@@ -123,7 +123,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** endpoints, services, business logic.
 - **Handoff note:** _Done. SQLModel tables/enums, `app/db.py` engine/session/local-user seed, Alembic initial schema migration, and focused model tests added; fresh SQLite upgrade verified._
 
-### [ ] Task 03 — HR4U async client service (B)
+### [x] Task 03 — HR4U async client service (B)
 - **Depends on:** 00, 02.
 - **Inputs:** `scripts/test_hr4u_api.py`, `docs.md`, `docs/hr4u-findings.md`, TECHNICAL §5.
 - **Scope:** `app/services/hr4u.py` — async httpx client wrapping `/autocomplete`, `POST /search`,
@@ -137,7 +137,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   unavailable, with a live test guarded by env); schemas parse the real response without loss of
   the fields the app needs (title, fulltext, requirements, addresses, counterpart, classifications).
 - **Not in this task:** HTTP routes, search UI, semantic/profile wiring.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Async httpx HR4U client, flexible job schemas with cleaned `text.fulltext`, request-body builder, typed expired detail result, mocked tests, and guarded live smoke test added._
 
 ### [ ] Task 04 — Search & job-detail endpoints with de-dup (B)
 - **Depends on:** 03.
