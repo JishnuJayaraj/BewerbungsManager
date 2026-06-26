@@ -139,7 +139,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** HTTP routes, search UI, semantic/profile wiring.
 - **Handoff note:** _Done. Async httpx HR4U client, flexible job schemas with cleaned `text.fulltext`, request-body builder, typed expired detail result, mocked tests, and guarded live smoke test added._
 
-### [ ] Task 04 — Search & job-detail endpoints with de-dup (B)
+### [x] Task 04 — Search & job-detail endpoints with de-dup (B)
 - **Depends on:** 03.
 - **Inputs:** TECHNICAL §5 (layered search), SPEC §5.2, `docs/hr4u-findings.md` (duplication);
   API.md (search/jobs/presets endpoints + response shapes).
@@ -155,7 +155,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   query and full advanced body respectively); autocomplete works; presets save and replay verbatim;
   job-detail returns detail or a typed "expired" for unknown UUID.
 - **Not in this task:** LLM, profile, saving an application.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Search/jobs routers added with basic must/title-field builder, advanced passthrough, autocomplete, light de-dup, typed expired detail response, and SearchPreset CRUD preserving query JSON._
 
 ### [ ] Task 05 — LLM layer + evidence-citation verifier (B)
 - **Depends on:** 01A.

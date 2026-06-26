@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import Settings, get_settings
+from app.routers import jobs, search
 
 
 class SettingsResponse(BaseModel):
@@ -42,9 +43,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request: Request,
         exc: HTTPException,
     ) -> JSONResponse:
-        code = _code_for_status(exc.status_code)
-        message = exc.detail if isinstance(exc.detail, str) else "Request failed"
-        details = exc.detail if isinstance(exc.detail, dict) else {}
+        code, message, details = _error_parts(exc.status_code, exc.detail)
         return JSONResponse(
             status_code=exc.status_code,
             content=error_payload(code, message, details),
@@ -94,7 +93,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ),
         )
 
+    app.include_router(search.router)
+    app.include_router(jobs.router)
+
     return app
+
+
+def _error_parts(status_code: int, detail: Any) -> tuple[str, str, dict[str, Any]]:
+    if isinstance(detail, dict):
+        code = str(detail.get("code") or _code_for_status(status_code))
+        message = str(detail.get("message") or "Request failed")
+        details = detail.get("details")
+        return code, message, details if isinstance(details, dict) else {}
+    return _code_for_status(status_code), detail if isinstance(detail, str) else "Request failed", {}
 
 
 def _code_for_status(status_code: int) -> str:
