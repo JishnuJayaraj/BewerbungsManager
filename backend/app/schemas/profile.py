@@ -257,6 +257,21 @@ class CvParseResult(BaseModel):
             return [{"url": item} if isinstance(item, str) else item for item in value]
         return value
 
+    @field_validator("locations", mode="before")
+    @classmethod
+    def _coerce_locations(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [{"place": item} if isinstance(item, str) else item for item in value]
+        return value
+
+    @field_validator("years_exp", mode="before")
+    @classmethod
+    def _coerce_years(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            match = re.search(r"\d+", value)
+            return int(match.group()) if match else None
+        return value
+
 
 def parse_profile_date(value: str | None) -> date | None:
     if not value:

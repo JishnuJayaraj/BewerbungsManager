@@ -201,3 +201,22 @@ def test_education_crud(tmp_path) -> None:
 
     assert client.delete(f"/api/profile/education/{edu_id}").status_code == 204
     assert client.get("/api/profile").json()["education"] == []
+
+
+def test_cv_parse_coerces_string_locations_and_loose_years() -> None:
+    from app.schemas.profile import CvParseResult
+
+    result = CvParseResult.model_validate(
+        {
+            "years_exp": "2+",
+            "locations": ["Nuremberg, Germany", {"place": "Berlin"}],
+            "links": ["linkedin.com/in/x"],
+            "education": ["B.Sc. Mathematics"],
+        }
+    )
+
+    assert result.years_exp == 2
+    assert result.locations[0] == {"place": "Nuremberg, Germany"}
+    assert result.locations[1] == {"place": "Berlin"}
+    assert result.links[0] == {"url": "linkedin.com/in/x"}
+    assert result.education[0].degree == "B.Sc. Mathematics"
