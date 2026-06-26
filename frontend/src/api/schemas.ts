@@ -233,6 +233,79 @@ export const requirementOverrideRequestSchema = z.object({
   user_override: requirementStatusSchema.nullable(),
 })
 
+export const artifactKindSchema = z.enum([
+  'COVER_LETTER',
+  'CV_BULLET_SUGGESTIONS',
+  'FIT_ANALYSIS',
+  'PORTAL_ANSWER',
+  'ANSWER_DRAFT',
+])
+
+export const generatableArtifactKindSchema = z.enum([
+  'COVER_LETTER',
+  'CV_BULLET_SUGGESTIONS',
+  'PORTAL_ANSWER',
+])
+
+export const citationStatusSchema = z.enum(['SUPPORTED', 'UNSUPPORTED'])
+
+export const verifiedCitationSchema = z.object({
+  claim: z.string(),
+  evidence_ref: z.string().nullable(),
+  status: citationStatusSchema,
+})
+
+export const generatedArtifactSchema = z.object({
+  id: z.string(),
+  application_id: z.string(),
+  kind: artifactKindSchema,
+  content: z.unknown(),
+  citations: z.array(verifiedCitationSchema),
+  has_unsupported: z.boolean(),
+  model_used: z.string().nullable(),
+  is_current: z.boolean(),
+  created_at: z.string(),
+})
+
+export const generatedArtifactListSchema = z.object({
+  items: z.array(generatedArtifactSchema),
+})
+
+export const generateRequestSchema = z.object({
+  kind: generatableArtifactKindSchema,
+  instruction: z.string().nullable().optional(),
+  portal_question: z.string().nullable().optional(),
+})
+
+export const coverLetterContentSchema = z.object({
+  language: briefLanguageSchema,
+  format: z.enum(['anschreiben', 'plain']),
+  subject: z.string().nullable().optional(),
+  body: z.string(),
+  claims: z.array(z.object({ claim: z.string(), evidence_ref: z.string().nullable().optional() })).default([]),
+})
+
+export const cvBulletSuggestionSchema = z.object({
+  experience_ref: z.string(),
+  original: z.string().nullable().optional(),
+  suggested: z.string(),
+  reason: z.string(),
+  evidence_ref: z.string().nullable().optional(),
+})
+
+export const cvBulletSuggestionsContentSchema = z.object({
+  suggestions: z.array(cvBulletSuggestionSchema).default([]),
+  emphasize: z.array(z.string()).default([]),
+  do_not_pretend: z.array(z.string()).default([]),
+})
+
+export const portalAnswerContentSchema = z.object({
+  question: z.string(),
+  language: briefLanguageSchema,
+  answer: z.string(),
+  claims: z.array(z.object({ claim: z.string(), evidence_ref: z.string().nullable().optional() })).default([]),
+})
+
 export const jobSuggestionSchema = z.object({
   role: z.string(),
   rationale: z.string(),
@@ -359,6 +432,15 @@ export type FitResponse = z.infer<typeof fitResponseSchema>
 export type FitAnalysis = z.infer<typeof fitAnalysisSchema>
 export type RequirementCheck = z.infer<typeof requirementCheckSchema>
 export type RequirementStatus = z.infer<typeof requirementStatusSchema>
+export type ArtifactKind = z.infer<typeof artifactKindSchema>
+export type GeneratableArtifactKind = z.infer<typeof generatableArtifactKindSchema>
+export type GeneratedArtifact = z.infer<typeof generatedArtifactSchema>
+export type GeneratedArtifactList = z.infer<typeof generatedArtifactListSchema>
+export type GenerateRequest = z.infer<typeof generateRequestSchema>
+export type VerifiedCitation = z.infer<typeof verifiedCitationSchema>
+export type CoverLetterContent = z.infer<typeof coverLetterContentSchema>
+export type CvBulletSuggestionsContent = z.infer<typeof cvBulletSuggestionsContentSchema>
+export type PortalAnswerContent = z.infer<typeof portalAnswerContentSchema>
 export type JobSuggestion = z.infer<typeof jobSuggestionSchema>
 export type SuggestResponse = z.infer<typeof suggestResponseSchema>
 export type Profile = z.infer<typeof profileSchema>

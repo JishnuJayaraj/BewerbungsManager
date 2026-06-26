@@ -11,6 +11,9 @@ import {
   deleteProject,
   deleteSearchPreset,
   deleteSkill,
+  exportArtifact,
+  generateArtifact,
+  getArtifact,
   getHealth,
   getApplication,
   getApplicationBrief,
@@ -20,6 +23,7 @@ import {
   getSettings,
   getSuggestions,
   listApplications,
+  listArtifacts,
   listSearchPresets,
   parseCv,
   runFit,
@@ -33,6 +37,9 @@ import {
 } from './client'
 import type {
   ApplicationBriefRequest,
+  GeneratedArtifact,
+  GenerateRequest,
+  GeneratableArtifactKind,
   BasicSearchRequest,
   SearchBody,
   SearchPresetCreate,
@@ -55,6 +62,8 @@ export const queryKeys = {
   application: (id: string) => ['applications', id] as const,
   brief: (id: string) => ['applications', id, 'brief'] as const,
   fit: (id: string) => ['applications', id, 'fit'] as const,
+  artifacts: (id: string, kind?: GeneratableArtifactKind) => ['applications', id, 'artifacts', kind ?? 'all'] as const,
+  artifact: (id: string) => ['artifacts', id] as const,
   presets: ['search', 'presets'] as const,
   autocomplete: (phrase: string) => ['search', 'autocomplete', phrase] as const,
   jobDetail: (uuid: string) => ['jobs', uuid] as const,
@@ -214,6 +223,41 @@ export function useUpdateRequirementOverrideMutation(applicationId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.fit(applicationId) })
     },
+  })
+}
+
+export function useArtifactsQuery(applicationId: string | null, kind?: GeneratableArtifactKind) {
+  return useQuery({
+    queryKey: queryKeys.artifacts(applicationId ?? '', kind),
+    queryFn: () => listArtifacts(applicationId ?? '', kind),
+    enabled: Boolean(applicationId),
+  })
+}
+
+export function useArtifactQuery(artifactId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.artifact(artifactId ?? ''),
+    queryFn: () => getArtifact(artifactId ?? ''),
+    enabled: Boolean(artifactId),
+  })
+}
+
+export function useGenerateArtifactMutation(applicationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: GenerateRequest) => generateArtifact(applicationId, input),
+    onSuccess: (artifact) => {
+      queryClient.setQueryData(queryKeys.artifact(artifact.id), artifact)
+      queryClient.invalidateQueries({ queryKey: queryKeys.artifacts(applicationId, artifact.kind as GeneratableArtifactKind) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.artifacts(applicationId) })
+    },
+  })
+}
+
+export function useExportArtifactMutation() {
+  return useMutation({
+    mutationFn: ({ artifact, format }: { artifact: GeneratedArtifact; format: 'markdown' | 'pdf' }) =>
+      exportArtifact(artifact.id, format),
   })
 }
 

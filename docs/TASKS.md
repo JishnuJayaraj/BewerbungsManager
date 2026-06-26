@@ -312,7 +312,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   evidence; missing-info prompts pre-fill the brief.
 - **Handoff note:** _Done. Workspace page now loads saved applications, shows job snapshots, edits guided briefs with evidence chips/company motivation/prompts, runs/loads fit, renders fit sections, requirement checklist with overrides, and matched evidence via typed API hooks._
 
-### [ ] Task 15 — Artifacts UI: generation, citations, diff, regenerate, export (F)
+### [x] Task 15 — Artifacts UI: generation, citations, diff, regenerate, export (F)
 - **Depends on:** 09, 14.
 - **Inputs:** SPEC §5.3 (artifacts, citations, export), §7 (regenerate); UI.md §4 (Artifacts panel);
   API.md (`.../generate`, `/api/artifacts/*`); LLM_CONTRACTS.md §4 (artifact content shapes).
@@ -321,7 +321,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   Markdown/clipboard/PDF.
 - **Done when:** each artifact generates and renders; unsupported claims are visibly flagged; diff
   shows old vs new bullets; regenerate keeps history; export produces usable output.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Workspace artifacts panel supports cover letter/CV bullets/portal answer generation, regenerate instructions, version switching, citation and unsupported-claim rendering, CV before/after diff, Markdown/copy/PDF export via typed artifact API hooks._
 
 ### [ ] Task 16 — Kanban board, next action, comms log, package checklist (F)
 - **Depends on:** 07, 10, 14.
@@ -370,6 +370,6 @@ Update as tasks complete (mirror the checkboxes above):
 - [x] 12 Profile editor UI
 - [x] 13 Search UI + save job
 - [x] 14 Workspace UI
-- [ ] 15 Artifacts UI
+- [x] 15 Artifacts UI
 - [ ] 16 Kanban + comms + checklist UI
 - [ ] 17 E2E, seed, docs

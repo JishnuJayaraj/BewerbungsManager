@@ -29,6 +29,9 @@ import {
   skillSchema,
   skillUpdateSchema,
   fitResponseSchema,
+  generatedArtifactListSchema,
+  generatedArtifactSchema,
+  generateRequestSchema,
   requirementCheckSchema,
   requirementOverrideRequestSchema,
   type ApiErrorPayload,
@@ -58,6 +61,10 @@ import {
   type SkillInput,
   type SkillUpdate,
   type FitResponse,
+  type GeneratedArtifact,
+  type GeneratedArtifactList,
+  type GenerateRequest,
+  type GeneratableArtifactKind,
   type RequirementCheck,
   type RequirementStatus,
 } from './schemas'
@@ -244,6 +251,60 @@ export function updateRequirementOverride(
     body: requirementOverrideRequestSchema.parse({ user_override: userOverride }),
     schema: requirementCheckSchema,
   })
+}
+
+export function generateArtifact(applicationId: string, input: GenerateRequest): Promise<GeneratedArtifact> {
+  return apiRequest(`/api/applications/${applicationId}/generate`, {
+    method: 'POST',
+    body: generateRequestSchema.parse(input),
+    schema: generatedArtifactSchema,
+  })
+}
+
+export function listArtifacts(
+  applicationId: string,
+  kind?: GeneratableArtifactKind,
+): Promise<GeneratedArtifactList> {
+  const query = kind ? `?kind=${encodeURIComponent(kind)}` : ''
+  return apiRequest(`/api/applications/${applicationId}/artifacts${query}`, {
+    schema: generatedArtifactListSchema,
+  })
+}
+
+export function getArtifact(artifactId: string): Promise<GeneratedArtifact> {
+  return apiRequest(`/api/artifacts/${artifactId}`, { schema: generatedArtifactSchema })
+}
+
+export async function exportArtifact(
+  artifactId: string,
+  format: 'markdown' | 'pdf',
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/artifacts/${artifactId}/export?format=${encodeURIComponent(format)}`,
+  )
+  if (!response.ok) {
+    const rawBody = await readJson(response)
+    const parsedError = apiErrorSchema.safeParse(rawBody)
+    if (parsedError.success) {
+      throw new ApiError(response.status, parsedError.data.error)
+    }
+    throw new ApiError(response.status, {
+      code: 'invalid_error_response',
+      message: response.statusText || 'Request failed',
+      details: {},
+    })
+  }
+
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  return {
+    blob: await response.blob(),
+    filename: filenameFromDisposition(disposition) ?? `jobcraft-artifact.${format === 'pdf' ? 'pdf' : 'md'}`,
+  }
+}
+
+function filenameFromDisposition(value: string): string | null {
+  const match = value.match(/filename="([^"]+)"/)
+  return match?.[1] ?? null
 }
 
 export function getSuggestions(): Promise<{ suggestions: Array<{ role: string; rationale: string; search: SearchBody }> }> {

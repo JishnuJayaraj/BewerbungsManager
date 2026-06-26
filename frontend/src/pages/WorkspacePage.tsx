@@ -5,13 +5,21 @@ import {
   useApplicationBriefQuery,
   useApplicationQuery,
   useApplicationsQuery,
+  useArtifactsQuery,
+  useExportArtifactMutation,
   useFitQuery,
+  useGenerateArtifactMutation,
   useProfileQuery,
   useRunFitMutation,
   useUpdateApplicationBriefMutation,
   useUpdateRequirementOverrideMutation,
+  coverLetterContentSchema,
+  cvBulletSuggestionsContentSchema,
+  portalAnswerContentSchema,
   type Application,
   type ApplicationBrief,
+  type GeneratedArtifact,
+  type GeneratableArtifactKind,
   type FitResponse,
   type Profile,
   type RequirementCheck,
@@ -49,6 +57,11 @@ const emptyBriefForm: BriefForm = {
 }
 
 const requirementStatuses: RequirementStatus[] = ['HAVE', 'PARTIAL', 'MISSING']
+const artifactKinds: Array<{ kind: GeneratableArtifactKind; label: string }> = [
+  { kind: 'COVER_LETTER', label: 'Cover letter' },
+  { kind: 'CV_BULLET_SUGGESTIONS', label: 'CV bullets' },
+  { kind: 'PORTAL_ANSWER', label: 'Portal answer' },
+]
 
 export function WorkspacePage() {
   const { applicationId } = useParams()
@@ -153,6 +166,7 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
             runError={runFit.error}
             onRun={() => runFit.mutate()}
           />
+          <ArtifactsPanel applicationId={applicationId} />
         </div>
 
         <aside className="workspace-side">
@@ -170,6 +184,245 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
       </div>
     </section>
   )
+}
+
+function ArtifactsPanel({ applicationId }: { applicationId: string }) {
+  const [kind, setKind] = useState<GeneratableArtifactKind>('COVER_LETTER')
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null)
+  const [instruction, setInstruction] = useState('')
+  const [portalQuestion, setPortalQuestion] = useState('')
+  const [copyStatus, setCopyStatus] = useState<string | null>(null)
+  const artifacts = useArtifactsQuery(applicationId, kind)
+  const generate = useGenerateArtifactMutation(applicationId)
+  const exportMutation = useExportArtifactMutation()
+
+  useEffect(() => {
+    const current = artifacts.data?.items.find((artifact) => artifact.is_current) ?? artifacts.data?.items[0]
+    setSelectedArtifactId(current?.id ?? null)
+  }, [artifacts.data, kind])
+
+  const selectedArtifact =
+    artifacts.data?.items.find((artifact) => artifact.id === selectedArtifactId) ?? artifacts.data?.items[0] ?? null
+
+  function submitGenerate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (kind === 'PORTAL_ANSWER' && portalQuestion.trim().length === 0) {
+      return
+    }
+    generate.mutate(
+      {
+        kind,
+        instruction: nullIfEmpty(instruction),
+        portal_question: kind === 'PORTAL_ANSWER' ? nullIfEmpty(portalQuestion) : undefined,
+      },
+      {
+        onSuccess: (artifact) => {
+          setSelectedArtifactId(artifact.id)
+          setInstruction('')
+        },
+      },
+    )
+  }
+
+  async function exportSelected(format: 'markdown' | 'pdf') {
+    if (!selectedArtifact) {
+      return
+    }
+    const exported = await exportMutation.mutateAsync({ artifact: selectedArtifact, format })
+    const url = URL.createObjectURL(exported.blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = exported.filename
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function copyMarkdown() {
+    if (!selectedArtifact) {
+      return
+    }
+    const exported = await exportMutation.mutateAsync({ artifact: selectedArtifact, format: 'markdown' })
+    const text = await exported.blob.text()
+    await navigator.clipboard.writeText(text)
+    setCopyStatus('Copied Markdown')
+  }
+
+  return (
+    <section className="workspace-card artifacts-panel">
+      <div className="card-heading">
+        <h3>Artifacts</h3>
+        {selectedArtifact?.has_unsupported ? <span className="unsupported-pill">Unsupported claims</span> : null}
+      </div>
+      <div className="artifact-tabs" role="tablist" aria-label="Artifact kinds">
+        {artifactKinds.map((item) => (
+          <button
+            type="button"
+            className={item.kind === kind ? 'artifact-tab artifact-tab-active' : 'artifact-tab'}
+            key={item.kind}
+            onClick={() => {
+              setKind(item.kind)
+              setCopyStatus(null)
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <form className="artifact-generate-form" onSubmit={submitGenerate}>
+        {kind === 'PORTAL_ANSWER' ? (
+          <label>
+            Portal question
+            <textarea
+              value={portalQuestion}
+              rows={3}
+              onChange={(event) => setPortalQuestion(event.target.value)}
+            />
+          </label>
+        ) : null}
+        <label>
+          Regenerate instruction
+          <input
+            value={instruction}
+            placeholder="make it shorter, use German B2 wording, emphasize Python"
+            onChange={(event) => setInstruction(event.target.value)}
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={generate.isPending || (kind === 'PORTAL_ANSWER' && portalQuestion.trim().length === 0)}
+        >
+          {generate.isPending ? 'Generating...' : selectedArtifact ? 'Generate new version' : 'Generate'}
+        </button>
+      </form>
+      {generate.error ? <ErrorNotice error={generate.error} /> : null}
+      {artifacts.isError ? <ErrorNotice error={artifacts.error} /> : null}
+      {artifacts.isPending ? <p className="muted">Loading artifact versions...</p> : null}
+      {artifacts.data && artifacts.data.items.length > 0 ? (
+        <label>
+          Version
+          <select
+            value={selectedArtifactId ?? ''}
+            onChange={(event) => setSelectedArtifactId(event.target.value)}
+          >
+            {artifacts.data.items.map((artifact) => (
+              <option key={artifact.id} value={artifact.id}>
+                {formatDateTime(artifact.created_at)}{artifact.is_current ? ' current' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {selectedArtifact ? (
+        <>
+          <ArtifactRenderer artifact={selectedArtifact} />
+          <CitationPanel artifact={selectedArtifact} />
+          <div className="artifact-actions">
+            <button type="button" className="secondary-button" onClick={() => exportSelected('markdown')}>
+              Markdown
+            </button>
+            <button type="button" className="secondary-button" onClick={copyMarkdown}>
+              Copy
+            </button>
+            <button type="button" className="secondary-button" onClick={() => exportSelected('pdf')}>
+              PDF
+            </button>
+            {copyStatus ? <span className="muted">{copyStatus}</span> : null}
+          </div>
+          {exportMutation.error ? <ErrorNotice error={exportMutation.error} /> : null}
+        </>
+      ) : (
+        <p className="muted">Generate an artifact to review versions, citations, and exports.</p>
+      )}
+    </section>
+  )
+}
+
+function ArtifactRenderer({ artifact }: { artifact: GeneratedArtifact }) {
+  if (artifact.kind === 'COVER_LETTER') {
+    const parsed = coverLetterContentSchema.safeParse(artifact.content)
+    if (!parsed.success) {
+      return <InvalidArtifact />
+    }
+    return (
+      <article className="artifact-rendered">
+        {parsed.data.subject ? <h4>{parsed.data.subject}</h4> : null}
+        <p className="artifact-meta">{parsed.data.language} / {parsed.data.format}</p>
+        <div className="artifact-text">{parsed.data.body}</div>
+      </article>
+    )
+  }
+
+  if (artifact.kind === 'CV_BULLET_SUGGESTIONS') {
+    const parsed = cvBulletSuggestionsContentSchema.safeParse(artifact.content)
+    if (!parsed.success) {
+      return <InvalidArtifact />
+    }
+    return (
+      <article className="artifact-rendered">
+        <div className="cv-diff-list">
+          {parsed.data.suggestions.map((suggestion) => (
+            <div className="cv-diff-row" key={`${suggestion.experience_ref}-${suggestion.suggested}`}>
+              <div>
+                <span>Original</span>
+                <p>{suggestion.original || 'No original bullet supplied.'}</p>
+              </div>
+              <div>
+                <span>Suggested</span>
+                <p>{suggestion.suggested}</p>
+              </div>
+              <p className="muted">{suggestion.reason}</p>
+            </div>
+          ))}
+        </div>
+        <FitPointList title="Emphasize" points={parsed.data.emphasize} />
+        <FitPointList title="Do not pretend" points={parsed.data.do_not_pretend} />
+      </article>
+    )
+  }
+
+  if (artifact.kind === 'PORTAL_ANSWER') {
+    const parsed = portalAnswerContentSchema.safeParse(artifact.content)
+    if (!parsed.success) {
+      return <InvalidArtifact />
+    }
+    return (
+      <article className="artifact-rendered">
+        <h4>{parsed.data.question}</h4>
+        <p className="artifact-meta">{parsed.data.language}</p>
+        <div className="artifact-text">{parsed.data.answer}</div>
+      </article>
+    )
+  }
+
+  return <InvalidArtifact />
+}
+
+function CitationPanel({ artifact }: { artifact: GeneratedArtifact }) {
+  if (artifact.citations.length === 0) {
+    return <p className="muted">No factual claims were returned for citation verification.</p>
+  }
+
+  return (
+    <section className="citation-panel">
+      <h4>Citations</h4>
+      <div className="citation-list">
+        {artifact.citations.map((citation) => (
+          <article
+            className={citation.status === 'UNSUPPORTED' ? 'citation-row citation-unsupported' : 'citation-row'}
+            key={`${citation.claim}-${citation.evidence_ref ?? 'none'}`}
+          >
+            <strong>{citation.status}</strong>
+            <p>{citation.claim}</p>
+            <span>{citation.evidence_ref ?? 'No evidence'}</span>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function InvalidArtifact() {
+  return <div className="notice notice-error">Artifact content did not match the expected shape.</div>
 }
 
 function JobSnapshot({ application }: { application: Application }) {
@@ -656,4 +909,11 @@ function valueAt(source: unknown, path: Array<string | number>): unknown {
 function nullIfEmpty(value: string) {
   const trimmed = value.trim()
   return trimmed === '' ? null : trimmed
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
 }
