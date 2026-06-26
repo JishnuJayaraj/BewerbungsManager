@@ -1,13 +1,15 @@
 type PlaceholderPageProps = {
+  eyebrow?: string
   title: string
+  copy?: string
 }
 
-export function PlaceholderPage({ title }: PlaceholderPageProps) {
+export function PlaceholderPage({ eyebrow = 'JobCraft', title, copy = 'Placeholder route' }: PlaceholderPageProps) {
   return (
     <section className="placeholder-page" aria-labelledby="page-title">
-      <p className="eyebrow">JobCraft</p>
-      <h1 id="page-title">{title}</h1>
-      <p className="placeholder-copy">Placeholder route</p>
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 id="page-title">{title}</h2>
+      <p className="placeholder-copy">{copy}</p>
     </section>
   )
 }

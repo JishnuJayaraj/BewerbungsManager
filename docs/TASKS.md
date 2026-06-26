@@ -267,7 +267,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 
 ## Phase 3 — Frontend
 
-### [ ] Task 11 — Frontend foundation (F)
+### [x] Task 11 — Frontend foundation (F)
 - **Depends on:** 01B, and at least 04 (endpoints to call).
 - **Inputs:** TECHNICAL §1, §3 frontend layout; API.md (client conventions, error shape,
   `/api/settings`); UI.md §6 (settings/privacy) + global nav.
@@ -278,7 +278,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Done when:** all top-level routes render; API client calls `/health`, `/api/settings`, and
   search successfully; privacy notice visible; API errors parse to the API.md error shape.
 - **Not in this task:** feature screens.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Typed Zod API client + TanStack query hooks added for health/settings/basic search and API errors; app shell/nav routes Profile/Search/Board/Workspace/Settings; settings/privacy notice is live from `/api/settings`; Vite proxy verified against backend._
 
 ### [ ] Task 12 — Profile editor UI (F)
 - **Depends on:** 06, 11.
@@ -355,18 +355,18 @@ Update as tasks complete (mirror the checkboxes above):
 
 - [x] 00 Validate HR4U API (GATE) — GO; see docs/hr4u-findings.md
 - [x] 00B Reconcile docs & contracts
-- [ ] 01A Backend scaffold & config
-- [ ] 01B Frontend scaffold
-- [ ] 02 Data models & migrations
-- [ ] 03 HR4U async client
-- [ ] 04 Search endpoints + de-dup
-- [ ] 05 LLM layer + citation verifier
-- [ ] 06 Profile parsing + CRUD
-- [ ] 07 Save job + application CRUD/PATCH + brief + comms
-- [ ] 08 Fit analysis + requirements checklist
-- [ ] 09 Artifact generation
-- [ ] 10 Package checklist + suggestions
-- [ ] 11 Frontend foundation
+- [x] 01A Backend scaffold & config
+- [x] 01B Frontend scaffold
+- [x] 02 Data models & migrations
+- [x] 03 HR4U async client
+- [x] 04 Search endpoints + de-dup
+- [x] 05 LLM layer + citation verifier
+- [x] 06 Profile parsing + CRUD
+- [x] 07 Save job + application CRUD/PATCH + brief + comms
+- [x] 08 Fit analysis + requirements checklist
+- [x] 09 Artifact generation
+- [x] 10 Package checklist + suggestions
+- [x] 11 Frontend foundation
 - [ ] 12 Profile editor UI
 - [ ] 13 Search UI + save job
 - [ ] 14 Workspace UI

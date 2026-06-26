@@ -1,5 +1,11 @@
 import { PlaceholderPage } from '../shared/PlaceholderPage'
 
 export function ProfilePage() {
-  return <PlaceholderPage title="Profile" />
+  return (
+    <PlaceholderPage
+      eyebrow="Profile"
+      title="Profile editor"
+      copy="Profile workflow placeholder."
+    />
+  )
 }
