@@ -20,14 +20,18 @@ and in Settings (SPEC §9).
   into each Workspace. Acts as the cold-start and re-entry hub.
 
 ## 1. Profile page  (Task 12 ← API: `/api/profile*`)
-- Paste-CV textarea → "Parse" (`POST /api/profile/parse`); shows parsed result to review/edit.
-- **Enrich with AI** panel: `POST /api/profile/enrich/questions` proposes targeted gap-filling
-  questions; the user answers and `POST /api/profile/enrich/apply` folds them back into the
-  profile (seniority/years/summary/target roles + new skills), showing what changed.
-- Editable sections: identity/headline/seniority/summary, **Skills**, **Experiences** (with
-  editable bullets), **Projects**. Each section supports manual add/edit/delete (no parse needed).
-- **Brief defaults** editor (tone / language / target angle).
-- Save persists via profile + sub-entity endpoints.
+- Hero with an **"Enrich with AI"** button that opens a **modal** — auto-loads targeted
+  gap-filling questions (`POST /api/profile/enrich/questions`); the user answers and
+  `POST /api/profile/enrich/apply` folds them back in (seniority/years/summary/target roles, new
+  skills, **experience bullets, and education**), showing what changed.
+- Paste-CV textarea → "Parse CV" (`POST /api/profile/parse`); extracts identity, skills,
+  experiences, **education**, projects, links.
+- Editable sections: **Identity** (name/headline/seniority/years/summary), **Skills** (IT/soft/
+  cert), **Languages** (separate — German level matters), **Experiences** (editable bullets),
+  **Education**, **Projects**, **Links** (GitHub/portfolio/LinkedIn). Each supports manual
+  add/edit/delete (no parse needed).
+- **Application defaults** card (clearly explained): the starting tone / language / positioning
+  angle for each job's generated materials (overridable per application in the Workspace).
 
 ## 2. Search page  (Task 13 ← API: `/api/search*`, `/api/jobs/*`, `/api/suggestions`)
 - **Basic search bar** (default): phrase (with autocomplete), location + radius, job type,

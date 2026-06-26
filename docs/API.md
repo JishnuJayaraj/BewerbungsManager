@@ -35,9 +35,13 @@ Companion to [TECHNICAL.md](./TECHNICAL.md) (data model) and
 - `POST /api/profile/enrich/apply` — body `{ "answers": [{ "key", "question", "answer" }] }` →
   `200 { "profile": Profile, "changes": [str], "added_skills": [str] }`. Folds answers into the
   profile (seniority/years/summary/target_roles + non-duplicate skills). LLM error → `502`.
-- Skills:    `POST/PUT/DELETE /api/profile/skills[/{id}]`
+- Skills:    `POST/PUT/DELETE /api/profile/skills[/{id}]` (languages are skills with `kind=LANGUAGE`)
 - Experience:`POST/PUT/DELETE /api/profile/experiences[/{id}]`
 - Projects:  `POST/PUT/DELETE /api/profile/projects[/{id}]`
+- Education: `POST/PUT/DELETE /api/profile/education[/{id}]` (degree, institution, field_of_study,
+  start/end `YYYY-MM`, grade, summary)
+
+`Profile` also returns `links` (`[{label, url}]`) and `education` (`[EducationResponse]`).
 
 `Profile` response:
 ```json
