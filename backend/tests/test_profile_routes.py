@@ -181,3 +181,23 @@ def test_cv_parse_result_coerces_loose_llm_shapes() -> None:
     assert kinds["Teamwork"] == "IT_SKILL"  # dict missing kind gets a default
     assert result.experiences[0].title == "Backend Engineer"
     assert result.projects[0].name == "JobCraft"
+
+
+def test_education_crud(tmp_path) -> None:
+    client = make_client(tmp_path)
+    created = client.post(
+        "/api/profile/education",
+        json={"degree": "B.Sc. Informatics", "institution": "LMU", "field_of_study": "CS", "end": "2016-07"},
+    )
+    assert created.status_code == 201
+    edu_id = created.json()["id"]
+
+    listed = client.get("/api/profile").json()
+    assert [e["degree"] for e in listed["education"]] == ["B.Sc. Informatics"]
+    assert listed["education"][0]["end"] == "2016-07"
+
+    updated = client.put(f"/api/profile/education/{edu_id}", json={"grade": "1.3"})
+    assert updated.json()["grade"] == "1.3"
+
+    assert client.delete(f"/api/profile/education/{edu_id}").status_code == 204
+    assert client.get("/api/profile").json()["education"] == []

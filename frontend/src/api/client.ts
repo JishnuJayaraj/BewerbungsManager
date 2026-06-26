@@ -10,6 +10,9 @@ import {
   autocompleteSuggestionSchema,
   basicSearchRequestSchema,
   cvParseRequestSchema,
+  educationInputSchema,
+  educationSchema,
+  educationUpdateSchema,
   enrichApplyRequestSchema,
   enrichApplyResponseSchema,
   enrichQuestionsResultSchema,
@@ -44,6 +47,9 @@ import {
   requirementCheckSchema,
   requirementOverrideRequestSchema,
   type ApiErrorPayload,
+  type Education,
+  type EducationInput,
+  type EducationUpdate,
   type EnrichAnswer,
   type EnrichApplyResponse,
   type EnrichQuestionsResult,
@@ -480,6 +486,29 @@ export function updateProject(id: string, input: ProjectUpdate): Promise<Project
 
 export function deleteProject(id: string): Promise<null> {
   return apiRequest(`/api/profile/projects/${id}`, {
+    method: 'DELETE',
+    schema: z.null(),
+  })
+}
+
+export function createEducation(input: EducationInput): Promise<Education> {
+  return apiRequest('/api/profile/education', {
+    method: 'POST',
+    body: educationInputSchema.parse(input),
+    schema: educationSchema,
+  })
+}
+
+export function updateEducation(id: string, input: EducationUpdate): Promise<Education> {
+  return apiRequest(`/api/profile/education/${id}`, {
+    method: 'PUT',
+    body: educationUpdateSchema.parse(input),
+    schema: educationSchema,
+  })
+}
+
+export function deleteEducation(id: string): Promise<null> {
+  return apiRequest(`/api/profile/education/${id}`, {
     method: 'DELETE',
     schema: z.null(),
   })

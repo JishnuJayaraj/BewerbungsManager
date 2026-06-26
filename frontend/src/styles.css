@@ -811,6 +811,112 @@ a {
   border-color: var(--accent-tint-2);
 }
 
+.lang-editor {
+  grid-template-columns: minmax(150px, 1fr) minmax(120px, 200px) auto;
+}
+
+.profile-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: none;
+}
+
+/* ── Modal ───────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(20 26 22 / 46%);
+  backdrop-filter: blur(4px);
+  animation: overlay-in 0.18s ease both;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  width: min(620px, 100%);
+  max-height: min(86vh, 760px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modal-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.modal-close {
+  min-height: 34px;
+  width: 34px;
+  padding: 0;
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-size: 1.3rem;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.modal-close:hover {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  border-color: var(--bad-line);
+  transform: none;
+}
+
+.modal-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px 24px;
+  overflow-y: auto;
+}
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface-2);
+}
+
+.modal-foot button:last-child {
+  margin-left: auto;
+}
+
+.modal-foot .muted {
+  font-size: 0.85rem;
+}
+
 .prompt-actions,
 .chip-row,
 .selected-chip-row {

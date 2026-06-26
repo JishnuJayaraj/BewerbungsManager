@@ -458,6 +458,34 @@ export const projectInputSchema = z.object({
 
 export const projectUpdateSchema = projectInputSchema.partial()
 
+export const educationSchema = z.object({
+  id: z.string(),
+  degree: z.string(),
+  institution: z.string().nullable(),
+  field_of_study: z.string().nullable(),
+  start: z.string().nullable(),
+  end: z.string().nullable(),
+  grade: z.string().nullable(),
+  summary: z.string().nullable(),
+})
+
+export const educationInputSchema = z.object({
+  degree: z.string().min(1),
+  institution: z.string().nullable().optional(),
+  field_of_study: z.string().nullable().optional(),
+  start: z.string().nullable().optional(),
+  end: z.string().nullable().optional(),
+  grade: z.string().nullable().optional(),
+  summary: z.string().nullable().optional(),
+})
+
+export const educationUpdateSchema = educationInputSchema.partial()
+
+export const profileLinkSchema = z.object({
+  label: z.string().optional(),
+  url: z.string().optional(),
+})
+
 export const profileSchema = z.object({
   id: z.string(),
   full_name: z.string().nullable(),
@@ -468,9 +496,11 @@ export const profileSchema = z.object({
   locations: z.array(z.record(z.string(), z.unknown())),
   preferences: z.record(z.string(), z.unknown()),
   brief_defaults: z.record(z.string(), z.unknown()),
+  links: z.array(z.record(z.string(), z.unknown())).default([]),
   skills: z.array(skillSchema),
   experiences: z.array(experienceSchema),
   projects: z.array(projectSchema),
+  education: z.array(educationSchema).default([]),
   parse_warning: z.string().nullable().optional(),
 })
 
@@ -483,6 +513,7 @@ export const profileUpdateSchema = z.object({
   locations: z.array(z.record(z.string(), z.unknown())).optional(),
   preferences: z.record(z.string(), z.unknown()).optional(),
   brief_defaults: z.record(z.string(), z.unknown()).optional(),
+  links: z.array(z.record(z.string(), z.unknown())).optional(),
 })
 
 export const cvParseRequestSchema = z.object({
@@ -569,6 +600,9 @@ export type ExperienceUpdate = z.infer<typeof experienceUpdateSchema>
 export type Project = z.infer<typeof projectSchema>
 export type ProjectInput = z.infer<typeof projectInputSchema>
 export type ProjectUpdate = z.infer<typeof projectUpdateSchema>
+export type Education = z.infer<typeof educationSchema>
+export type EducationInput = z.infer<typeof educationInputSchema>
+export type EducationUpdate = z.infer<typeof educationUpdateSchema>
 export type SkillKind = z.infer<typeof skillKindSchema>
 export type ProfileEntrySource = z.infer<typeof profileEntrySourceSchema>
 export type EnrichQuestion = z.infer<typeof enrichQuestionSchema>

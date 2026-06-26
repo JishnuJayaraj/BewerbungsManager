@@ -113,6 +113,37 @@ class ProjectResponse(BaseModel):
     links: list[str]
 
 
+class EducationInput(BaseModel):
+    degree: str = Field(min_length=1)
+    institution: str | None = None
+    field_of_study: str | None = None
+    start: str | None = None
+    end: str | None = None
+    grade: str | None = None
+    summary: str | None = None
+
+
+class EducationUpdate(BaseModel):
+    degree: str | None = None
+    institution: str | None = None
+    field_of_study: str | None = None
+    start: str | None = None
+    end: str | None = None
+    grade: str | None = None
+    summary: str | None = None
+
+
+class EducationResponse(BaseModel):
+    id: uuid.UUID
+    degree: str
+    institution: str | None
+    field_of_study: str | None
+    start: str | None
+    end: str | None
+    grade: str | None
+    summary: str | None
+
+
 class ProfileUpdate(BaseModel):
     full_name: str | None = None
     headline: str | None = None
@@ -122,6 +153,7 @@ class ProfileUpdate(BaseModel):
     locations: list[dict[str, Any]] | None = None
     preferences: dict[str, Any] | None = None
     brief_defaults: dict[str, Any] | None = None
+    links: list[dict[str, Any]] | None = None
 
 
 class ProfileResponse(BaseModel):
@@ -134,9 +166,11 @@ class ProfileResponse(BaseModel):
     locations: list[dict[str, Any]]
     preferences: dict[str, Any]
     brief_defaults: dict[str, Any]
+    links: list[dict[str, Any]] = Field(default_factory=list)
     skills: list[SkillResponse]
     experiences: list[ExperienceResponse]
     projects: list[ProjectResponse]
+    education: list[EducationResponse] = Field(default_factory=list)
     parse_warning: str | None = None
 
 
@@ -165,6 +199,16 @@ class CvParsedProject(BaseModel):
     links: list[str] = Field(default_factory=list)
 
 
+class CvParsedEducation(BaseModel):
+    degree: str
+    institution: str | None = None
+    field_of_study: str | None = None
+    start: str | None = None
+    end: str | None = None
+    grade: str | None = None
+    summary: str | None = None
+
+
 class CvParseResult(BaseModel):
     full_name: str | None = None
     headline: str | None = None
@@ -172,9 +216,11 @@ class CvParseResult(BaseModel):
     years_exp: int | None = None
     summary: str | None = None
     locations: list[dict[str, Any]] = Field(default_factory=list)
+    links: list[dict[str, Any]] = Field(default_factory=list)
     skills: list[CvParsedSkill] = Field(default_factory=list)
     experiences: list[CvParsedExperience] = Field(default_factory=list)
     projects: list[CvParsedProject] = Field(default_factory=list)
+    education: list[CvParsedEducation] = Field(default_factory=list)
 
     @field_validator("skills", mode="before")
     @classmethod
@@ -195,6 +241,20 @@ class CvParseResult(BaseModel):
     def _coerce_projects(cls, value: Any) -> Any:
         if isinstance(value, list):
             return [{"name": item} if isinstance(item, str) else item for item in value]
+        return value
+
+    @field_validator("education", mode="before")
+    @classmethod
+    def _coerce_education(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [{"degree": item} if isinstance(item, str) else item for item in value]
+        return value
+
+    @field_validator("links", mode="before")
+    @classmethod
+    def _coerce_links(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [{"url": item} if isinstance(item, str) else item for item in value]
         return value
 
 

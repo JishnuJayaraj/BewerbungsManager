@@ -22,13 +22,20 @@ _QUESTIONS_SYSTEM = (
 )
 
 _APPLY_SYSTEM = (
-    "You enrich a tech/IT job seeker's profile from their answers. Given the profile JSON and the "
-    "user's answers, return a JSON patch. Only include fields the answers clearly support; never "
-    "invent facts. Write an improved professional summary that incorporates the answers. "
+    "You enrich a tech/IT job seeker's profile from their answers. Given the profile JSON (which "
+    "includes each experience's id) and the user's answers, return a JSON patch. Only include "
+    "fields the answers clearly support; never invent facts. Write an improved professional "
+    "summary that incorporates the answers. When an answer adds measurable impact or detail to an "
+    "existing experience, add strong, quantified CV bullet points to that experience via "
+    "experience_updates (reference it by its exact id from the input). Capture any education the "
+    "answers reveal. "
     'Return ONLY JSON: {"headline": str|null, "seniority": str|null, "years_exp": int|null, '
     '"summary": str|null, "target_roles": [str], "add_skills": [{"name": str, "kind": '
-    '"IT_SKILL"|"SOFT_SKILL"|"LANGUAGE"|"CERT", "level": str|null}], "change_summary": [str]}. '
-    "change_summary is a short human-readable list of what you changed."
+    '"IT_SKILL"|"SOFT_SKILL"|"LANGUAGE"|"CERT", "level": str|null}], '
+    '"add_education": [{"degree": str, "institution": str|null, "field_of_study": str|null, '
+    '"start": "YYYY-MM"|null, "end": "YYYY-MM"|null, "grade": str|null, "summary": str|null}], '
+    '"experience_updates": [{"experience_id": str, "add_bullets": [str], "summary": str|null}], '
+    '"change_summary": [str]}. change_summary is a short human-readable list of what you changed.'
 )
 
 

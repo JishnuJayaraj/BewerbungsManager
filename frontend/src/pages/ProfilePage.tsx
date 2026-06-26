@@ -1,20 +1,25 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import {
   ApiError,
   useCreateExperienceMutation,
   useCreateProjectMutation,
   useCreateSkillMutation,
   useDeleteExperienceMutation,
+  useCreateEducationMutation,
+  useDeleteEducationMutation,
   useDeleteProjectMutation,
   useDeleteSkillMutation,
   useEnrichApplyMutation,
   useEnrichQuestionsMutation,
   useParseCvMutation,
   useProfileQuery,
+  useUpdateEducationMutation,
   useUpdateExperienceMutation,
   useUpdateProfileMutation,
   useUpdateProjectMutation,
   useUpdateSkillMutation,
+  type Education,
+  type EducationInput,
   type EnrichAnswer,
   type EnrichQuestion,
   type Experience,
@@ -27,7 +32,7 @@ import {
   type SkillKind,
 } from '../api'
 
-const skillKinds: SkillKind[] = ['IT_SKILL', 'SOFT_SKILL', 'LANGUAGE', 'CERT']
+const skillKinds: SkillKind[] = ['IT_SKILL', 'SOFT_SKILL', 'CERT']
 
 type ProfileForm = {
   full_name: string
@@ -101,12 +106,33 @@ const emptyProjectForm: ProjectForm = {
   links: '',
 }
 
+type EducationForm = {
+  degree: string
+  institution: string
+  field_of_study: string
+  start: string
+  end: string
+  grade: string
+  summary: string
+}
+
+const emptyEducationForm: EducationForm = {
+  degree: '',
+  institution: '',
+  field_of_study: '',
+  start: '',
+  end: '',
+  grade: '',
+  summary: '',
+}
+
 export function ProfilePage() {
   const profile = useProfileQuery()
   const updateProfile = useUpdateProfileMutation()
   const parseCv = useParseCvMutation()
   const [form, setForm] = useState<ProfileForm>(emptyProfileForm)
   const [cvText, setCvText] = useState('')
+  const [enrichOpen, setEnrichOpen] = useState(false)
 
   useEffect(() => {
     if (profile.data) {
@@ -124,11 +150,22 @@ export function ProfilePage() {
     parseCv.mutate(cvText)
   }
 
+  const skills = profile.data?.skills ?? []
+  const languages = skills.filter((skill) => skill.kind === 'LANGUAGE')
+  const otherSkills = skills.filter((skill) => skill.kind !== 'LANGUAGE')
+
   return (
     <section className="profile-layout" aria-labelledby="profile-title">
-      <div className="section-heading">
-        <p className="eyebrow">Profile</p>
-        <h2 id="profile-title">Profile editor</h2>
+      <div className="section-heading profile-hero">
+        <div>
+          <p className="eyebrow">Profile</p>
+          <h2 id="profile-title">Your profile</h2>
+          <p className="section-copy">
+            The richer this is, the sharper your fit analysis and tailored materials. Paste a CV to
+            start, then let the assistant fill the gaps.
+          </p>
+        </div>
+        <button type="button" onClick={() => setEnrichOpen(true)}>✦ Enrich with AI</button>
       </div>
 
       {profile.isPending ? <p className="muted">Loading profile...</p> : null}
@@ -137,89 +174,97 @@ export function ProfilePage() {
 
       <form className="profile-card profile-card-wide" onSubmit={submitParse}>
         <div className="card-heading">
-          <h3>CV paste</h3>
+          <div>
+            <h3>Import from CV</h3>
+            <p className="muted" style={{ margin: '4px 0 0' }}>Paste your CV text — the AI extracts skills, experience, education and more.</p>
+          </div>
           <button type="submit" disabled={parseCv.isPending || cvText.trim().length === 0}>
-            {parseCv.isPending ? 'Parsing...' : 'Parse'}
+            {parseCv.isPending ? 'Parsing…' : 'Parse CV'}
           </button>
         </div>
         <label>
           CV text
-          <textarea
-            value={cvText}
-            onChange={(event) => setCvText(event.target.value)}
-            rows={8}
-          />
+          <textarea value={cvText} onChange={(event) => setCvText(event.target.value)} rows={8} />
         </label>
         {parseCv.isError ? <ErrorNotice error={parseCv.error} /> : null}
       </form>
-
-      <EnrichPanel hasProfile={Boolean(profile.data)} />
 
       <form className="profile-card profile-card-wide" onSubmit={saveProfile}>
         <div className="card-heading">
           <h3>Identity</h3>
           <button type="submit" disabled={updateProfile.isPending || profile.isPending}>
-            {updateProfile.isPending ? 'Saving...' : 'Save'}
+            {updateProfile.isPending ? 'Saving…' : 'Save'}
           </button>
         </div>
         <div className="field-grid">
           <TextField label="Full name" value={form.full_name} onChange={(value) => setFormField(setForm, 'full_name', value)} />
           <TextField label="Headline" value={form.headline} onChange={(value) => setFormField(setForm, 'headline', value)} />
           <TextField label="Seniority" value={form.seniority} onChange={(value) => setFormField(setForm, 'seniority', value)} />
-          <TextField
-            label="Years"
-            type="number"
-            value={form.years_exp}
-            onChange={(value) => setFormField(setForm, 'years_exp', value)}
-          />
+          <TextField label="Years of experience" type="number" value={form.years_exp} onChange={(value) => setFormField(setForm, 'years_exp', value)} />
         </div>
         <label>
-          Summary
-          <textarea
-            value={form.summary}
-            onChange={(event) => setFormField(setForm, 'summary', event.target.value)}
-            rows={5}
-          />
+          Professional summary
+          <textarea value={form.summary} onChange={(event) => setFormField(setForm, 'summary', event.target.value)} rows={5} />
         </label>
-        <div className="field-grid">
-          <TextField label="Default tone" value={form.default_tone} onChange={(value) => setFormField(setForm, 'default_tone', value)} />
-          <label>
-            Default language
-            <select
-              value={form.default_language}
-              onChange={(event) => setFormField(setForm, 'default_language', event.target.value)}
-            >
-              <option value="DE">DE</option>
-              <option value="EN">EN</option>
-            </select>
-          </label>
-          <TextField
-            label="Default angle"
-            value={form.default_target_angle}
-            onChange={(value) => setFormField(setForm, 'default_target_angle', value)}
-          />
-        </div>
         {updateProfile.isError ? <ErrorNotice error={updateProfile.error} /> : null}
       </form>
 
       {profile.data ? (
         <>
-          <SkillsSection skills={profile.data.skills} />
+          <SkillsSection skills={otherSkills} />
+          <LanguagesSection languages={languages} />
           <ExperiencesSection experiences={profile.data.experiences} />
+          <EducationSection education={profile.data.education} />
           <ProjectsSection projects={profile.data.projects} />
+          <LinksSection links={profile.data.links} />
         </>
       ) : null}
+
+      <form className="profile-card profile-card-wide" onSubmit={saveProfile}>
+        <div className="card-heading">
+          <div>
+            <h3>Application defaults</h3>
+            <p className="muted" style={{ margin: '4px 0 0' }}>
+              Starting point for every job's cover letter &amp; answers — you can still tweak the
+              tone, language and angle per application in its Workspace.
+            </p>
+          </div>
+          <button type="submit" disabled={updateProfile.isPending || profile.isPending}>
+            {updateProfile.isPending ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+        <div className="field-grid">
+          <TextField label="Tone" value={form.default_tone} onChange={(value) => setFormField(setForm, 'default_tone', value)} />
+          <label>
+            Language
+            <select value={form.default_language} onChange={(event) => setFormField(setForm, 'default_language', event.target.value)}>
+              <option value="DE">German</option>
+              <option value="EN">English</option>
+            </select>
+          </label>
+          <TextField label="Positioning angle" value={form.default_target_angle} onChange={(value) => setFormField(setForm, 'default_target_angle', value)} />
+        </div>
+      </form>
+
+      {enrichOpen ? <EnrichModal onClose={() => setEnrichOpen(false)} hasProfile={Boolean(profile.data)} /> : null}
     </section>
   )
 }
 
-function EnrichPanel({ hasProfile }: { hasProfile: boolean }) {
+function EnrichModal({ onClose, hasProfile }: { onClose: () => void; hasProfile: boolean }) {
   const questions = useEnrichQuestionsMutation()
   const apply = useEnrichApplyMutation()
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [result, setResult] = useState<{ changes: string[]; addedSkills: string[] } | null>(null)
 
   const items: EnrichQuestion[] = questions.data?.questions ?? []
+  const askRef = useRef(questions.mutate)
+  askRef.current = questions.mutate
+
+  // Auto-fetch questions when the modal opens.
+  useEffect(() => {
+    askRef.current()
+  }, [])
 
   function ask() {
     setResult(null)
@@ -227,8 +272,7 @@ function EnrichPanel({ hasProfile }: { hasProfile: boolean }) {
     questions.mutate()
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function applyAnswers() {
     const payload: EnrichAnswer[] = items
       .filter((q) => (answers[q.key] ?? '').trim().length > 0)
       .map((q) => ({ key: q.key, question: q.question, answer: answers[q.key].trim() }))
@@ -242,73 +286,86 @@ function EnrichPanel({ hasProfile }: { hasProfile: boolean }) {
     })
   }
 
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    applyAnswers()
+  }
+
   const answeredCount = items.filter((q) => (answers[q.key] ?? '').trim().length > 0).length
 
   return (
-    <section className="profile-card profile-card-wide prompt-card" aria-labelledby="enrich-title">
-      <div className="card-heading">
-        <div>
-          <h3 id="enrich-title">Enrich with AI</h3>
-          <p className="muted" style={{ margin: '4px 0 0' }}>
-            Let the assistant spot gaps and ask a few targeted questions. Your answers fold back
-            into your profile.
-          </p>
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="enrich-title" onClick={onClose}>
+      <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <p className="eyebrow">✦ AI enrichment</p>
+            <h2 id="enrich-title">Strengthen your profile</h2>
+          </div>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
         </div>
-        <button type="button" className="secondary-button" onClick={ask} disabled={questions.isPending}>
-          {questions.isPending ? 'Thinking…' : items.length > 0 ? 'New questions' : 'Ask AI'}
-        </button>
-      </div>
 
-      {!hasProfile && items.length === 0 ? (
-        <p className="muted">Tip: paste your CV or add a few skills first — the questions get sharper.</p>
-      ) : null}
-      {questions.isError ? <ErrorNotice error={questions.error} /> : null}
+        <div className="modal-body">
+          {questions.isPending ? <p className="muted">Looking at your profile for gaps…</p> : null}
+          {!hasProfile && items.length === 0 && !questions.isPending ? (
+            <p className="muted">Tip: paste your CV or add a few skills first — the questions get sharper.</p>
+          ) : null}
+          {questions.isError ? <ErrorNotice error={questions.error} /> : null}
 
-      {items.length > 0 ? (
-        <form className="stacked-editor" onSubmit={submit}>
-          {items.map((q) => (
-            <label key={q.key}>
-              <span className="enrich-q">
-                <span className={`enrich-field enrich-field-${q.field}`}>{enrichFieldLabel(q.field)}</span>
-                {q.question}
-              </span>
-              {q.purpose ? <span className="muted enrich-purpose">{q.purpose}</span> : null}
-              <textarea
-                rows={2}
-                value={answers[q.key] ?? ''}
-                onChange={(event) => setAnswers((prev) => ({ ...prev, [q.key]: event.target.value }))}
-                placeholder="Your answer…"
-              />
-            </label>
-          ))}
-          <div className="row-actions">
-            <button type="submit" disabled={apply.isPending || answeredCount === 0}>
+          {result ? (
+            <div className="notice enrich-result">
+              <h3>✓ Profile updated</h3>
+              {result.changes.length > 0 ? (
+                <ul className="compact-list">
+                  {result.changes.map((change, index) => (
+                    <li key={index}>{change}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {result.addedSkills.length > 0 ? (
+                <p className="muted" style={{ marginTop: 10, marginBottom: 0 }}>
+                  Added skills: {result.addedSkills.join(', ')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {items.length > 0 ? (
+            <form className="stacked-editor" onSubmit={submit}>
+              {items.map((q) => (
+                <label key={q.key}>
+                  <span className="enrich-q">
+                    <span className={`enrich-field enrich-field-${q.field}`}>{enrichFieldLabel(q.field)}</span>
+                    {q.question}
+                  </span>
+                  {q.purpose ? <span className="muted enrich-purpose">{q.purpose}</span> : null}
+                  <textarea
+                    rows={2}
+                    value={answers[q.key] ?? ''}
+                    onChange={(event) => setAnswers((prev) => ({ ...prev, [q.key]: event.target.value }))}
+                    placeholder="Your answer…"
+                  />
+                </label>
+              ))}
+              {apply.isError ? <ErrorNotice error={apply.error} /> : null}
+            </form>
+          ) : null}
+        </div>
+
+        <div className="modal-foot">
+          <button type="button" className="secondary-button" onClick={ask} disabled={questions.isPending}>
+            {questions.isPending ? 'Thinking…' : 'New questions'}
+          </button>
+          <span className="muted">{answeredCount} of {items.length} answered</span>
+          {result ? (
+            <button type="button" onClick={onClose}>Done</button>
+          ) : (
+            <button type="button" onClick={applyAnswers} disabled={apply.isPending || answeredCount === 0}>
               {apply.isPending ? 'Applying…' : `Apply ${answeredCount || ''} answer${answeredCount === 1 ? '' : 's'}`.trim()}
             </button>
-            <span className="muted">{answeredCount} of {items.length} answered</span>
-          </div>
-          {apply.isError ? <ErrorNotice error={apply.error} /> : null}
-        </form>
-      ) : null}
-
-      {result ? (
-        <div className="notice enrich-result">
-          <h3>Profile updated</h3>
-          {result.changes.length > 0 ? (
-            <ul className="compact-list">
-              {result.changes.map((change, index) => (
-                <li key={index}>{change}</li>
-              ))}
-            </ul>
-          ) : null}
-          {result.addedSkills.length > 0 ? (
-            <p className="muted" style={{ marginTop: 10, marginBottom: 0 }}>
-              Added skills: {result.addedSkills.join(', ')}
-            </p>
-          ) : null}
+          )}
         </div>
-      ) : null}
-    </section>
+      </div>
+    </div>
   )
 }
 
@@ -509,6 +566,181 @@ function ProjectsSection({ projects }: { projects: Project[] }) {
   )
 }
 
+function LanguagesSection({ languages }: { languages: Skill[] }) {
+  const createSkill = useCreateSkillMutation()
+  const updateSkill = useUpdateSkillMutation()
+  const deleteSkill = useDeleteSkillMutation()
+  const [name, setName] = useState('')
+  const [level, setLevel] = useState('')
+  const [drafts, setDrafts] = useState<Record<string, { name: string; level: string }>>({})
+
+  useEffect(() => {
+    setDrafts(Object.fromEntries(languages.map((lang) => [lang.id, { name: lang.name, level: lang.level ?? '' }])))
+  }, [languages])
+
+  function add(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (name.trim().length === 0) return
+    createSkill.mutate(
+      { name: name.trim(), kind: 'LANGUAGE', level: nullIfEmpty(level), source: 'MANUAL' },
+      { onSuccess: () => { setName(''); setLevel('') } },
+    )
+  }
+
+  return (
+    <section className="profile-card profile-card-wide" aria-labelledby="languages-title">
+      <div className="card-heading">
+        <div>
+          <h3 id="languages-title">Languages</h3>
+          <p className="muted" style={{ margin: '4px 0 0' }}>Your German level is one of the biggest real-world filters in the German market.</p>
+        </div>
+      </div>
+      <form className="compact-editor lang-editor" onSubmit={add}>
+        <TextField label="Language" value={name} onChange={setName} placeholder="German" />
+        <TextField label="Level" value={level} onChange={setLevel} placeholder="B2 / C1 / native" />
+        <button type="submit" disabled={createSkill.isPending || name.trim().length === 0}>Add</button>
+      </form>
+      {createSkill.isError ? <ErrorNotice error={createSkill.error} /> : null}
+      <div className="editor-list">
+        {languages.length === 0 ? <p className="muted">No languages yet — add at least your German and English levels.</p> : null}
+        {languages.map((lang) => {
+          const draft = drafts[lang.id] ?? { name: lang.name, level: lang.level ?? '' }
+          return (
+            <form
+              className="compact-editor lang-editor"
+              key={lang.id}
+              onSubmit={(event) => {
+                event.preventDefault()
+                updateSkill.mutate({ id: lang.id, input: { name: draft.name, kind: 'LANGUAGE', level: nullIfEmpty(draft.level), source: 'MANUAL' } })
+              }}
+            >
+              <TextField label="Language" value={draft.name} onChange={(value) => setDrafts((c) => ({ ...c, [lang.id]: { ...draft, name: value } }))} />
+              <TextField label="Level" value={draft.level} onChange={(value) => setDrafts((c) => ({ ...c, [lang.id]: { ...draft, level: value } }))} />
+              <div className="row-actions">
+                <button type="submit" disabled={updateSkill.isPending}>Save</button>
+                <button type="button" className="secondary-button" onClick={() => deleteSkill.mutate(lang.id)}>Delete</button>
+              </div>
+            </form>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function EducationSection({ education }: { education: Education[] }) {
+  const createEducation = useCreateEducationMutation()
+  const updateEducation = useUpdateEducationMutation()
+  const deleteEducation = useDeleteEducationMutation()
+  const [newEducation, setNewEducation] = useState<EducationForm>(emptyEducationForm)
+  const [drafts, setDrafts] = useState<Record<string, EducationForm>>({})
+
+  useEffect(() => {
+    setDrafts(Object.fromEntries(education.map((item) => [item.id, educationToForm(item)])))
+  }, [education])
+
+  function add(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    createEducation.mutate(educationFormToInput(newEducation), { onSuccess: () => setNewEducation(emptyEducationForm) })
+  }
+
+  return (
+    <section className="profile-card profile-card-wide" aria-labelledby="education-title">
+      <div className="card-heading">
+        <h3 id="education-title">Education</h3>
+      </div>
+      <form className="stacked-editor" onSubmit={add}>
+        <EducationFields value={newEducation} onChange={setNewEducation} />
+        <button type="submit" disabled={createEducation.isPending || newEducation.degree.trim().length === 0}>Add</button>
+      </form>
+      {createEducation.isError ? <ErrorNotice error={createEducation.error} /> : null}
+      <div className="editor-list">
+        {education.map((item) => {
+          const draft = drafts[item.id] ?? educationToForm(item)
+          return (
+            <form
+              className="stacked-editor"
+              key={item.id}
+              onSubmit={(event) => {
+                event.preventDefault()
+                updateEducation.mutate({ id: item.id, input: educationFormToInput(draft) })
+              }}
+            >
+              <EducationFields value={draft} onChange={(next) => setDrafts((c) => ({ ...c, [item.id]: next }))} />
+              <div className="row-actions">
+                <button type="submit" disabled={updateEducation.isPending}>Save</button>
+                <button type="button" className="secondary-button" onClick={() => deleteEducation.mutate(item.id)}>Delete</button>
+              </div>
+            </form>
+          )
+        })}
+      </div>
+      {updateEducation.isError ? <ErrorNotice error={updateEducation.error} /> : null}
+      {deleteEducation.isError ? <ErrorNotice error={deleteEducation.error} /> : null}
+    </section>
+  )
+}
+
+function LinksSection({ links }: { links: Array<Record<string, unknown>> }) {
+  const updateProfile = useUpdateProfileMutation()
+  const [rows, setRows] = useState<Array<{ label: string; url: string }>>([])
+
+  useEffect(() => {
+    setRows(links.map((link) => ({ label: stringValue(link.label, ''), url: stringValue(link.url, '') })))
+  }, [links])
+
+  function save() {
+    const cleaned = rows
+      .filter((row) => row.url.trim().length > 0)
+      .map((row) => ({ label: row.label.trim(), url: row.url.trim() }))
+    updateProfile.mutate({ links: cleaned })
+  }
+
+  return (
+    <section className="profile-card profile-card-wide" aria-labelledby="links-title">
+      <div className="card-heading">
+        <div>
+          <h3 id="links-title">Links</h3>
+          <p className="muted" style={{ margin: '4px 0 0' }}>GitHub, portfolio, LinkedIn — strong signals of your work.</p>
+        </div>
+        <button type="button" onClick={save} disabled={updateProfile.isPending}>{updateProfile.isPending ? 'Saving…' : 'Save'}</button>
+      </div>
+      <div className="editor-list">
+        {rows.map((row, index) => (
+          <div className="compact-editor lang-editor" key={index}>
+            <TextField label="Label" value={row.label} onChange={(value) => setRows((c) => c.map((r, i) => (i === index ? { ...r, label: value } : r)))} placeholder="GitHub" />
+            <TextField label="URL" value={row.url} onChange={(value) => setRows((c) => c.map((r, i) => (i === index ? { ...r, url: value } : r)))} placeholder="https://…" />
+            <button type="button" className="secondary-button" onClick={() => setRows((c) => c.filter((_, i) => i !== index))}>Remove</button>
+          </div>
+        ))}
+      </div>
+      <div className="row-actions">
+        <button type="button" className="secondary-button" onClick={() => setRows((c) => [...c, { label: '', url: '' }])}>Add link</button>
+      </div>
+      {updateProfile.isError ? <ErrorNotice error={updateProfile.error} /> : null}
+    </section>
+  )
+}
+
+function EducationFields({ value, onChange }: { value: EducationForm; onChange: (value: EducationForm) => void }) {
+  return (
+    <>
+      <div className="field-grid">
+        <TextField label="Degree" value={value.degree} onChange={(next) => onChange({ ...value, degree: next })} placeholder="B.Sc. Computer Science" />
+        <TextField label="Institution" value={value.institution} onChange={(next) => onChange({ ...value, institution: next })} />
+        <TextField label="Field of study" value={value.field_of_study} onChange={(next) => onChange({ ...value, field_of_study: next })} />
+        <TextField label="Grade" value={value.grade} onChange={(next) => onChange({ ...value, grade: next })} placeholder="1.7" />
+        <TextField label="Start (YYYY-MM)" value={value.start} onChange={(next) => onChange({ ...value, start: next })} placeholder="2014-10" />
+        <TextField label="End (YYYY-MM)" value={value.end} onChange={(next) => onChange({ ...value, end: next })} placeholder="2018-09" />
+      </div>
+      <label>
+        Notes
+        <textarea value={value.summary} onChange={(event) => onChange({ ...value, summary: event.target.value })} rows={2} />
+      </label>
+    </>
+  )
+}
+
 function SkillFields({ value, onChange }: { value: SkillForm; onChange: (value: SkillForm) => void }) {
   return (
     <>
@@ -700,6 +932,30 @@ function projectFormToInput(form: ProjectForm): ProjectInput {
     summary: nullIfEmpty(form.summary),
     tech: splitComma(form.tech),
     links: splitComma(form.links),
+  }
+}
+
+function educationToForm(item: Education): EducationForm {
+  return {
+    degree: item.degree,
+    institution: item.institution ?? '',
+    field_of_study: item.field_of_study ?? '',
+    start: item.start ?? '',
+    end: item.end ?? '',
+    grade: item.grade ?? '',
+    summary: item.summary ?? '',
+  }
+}
+
+function educationFormToInput(form: EducationForm): EducationInput {
+  return {
+    degree: form.degree.trim(),
+    institution: nullIfEmpty(form.institution),
+    field_of_study: nullIfEmpty(form.field_of_study),
+    start: nullIfEmpty(form.start),
+    end: nullIfEmpty(form.end),
+    grade: nullIfEmpty(form.grade),
+    summary: nullIfEmpty(form.summary),
   }
 }
 

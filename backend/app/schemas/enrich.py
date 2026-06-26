@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.profile import CvParsedSkill, ProfileResponse
+from app.schemas.profile import CvParsedEducation, CvParsedSkill, ProfileResponse
 
 EnrichField = Literal["summary", "seniority", "years_exp", "target_roles", "skills", "impact", "language", "other"]
 
@@ -41,6 +41,12 @@ class EnrichApplyInputs(BaseModel):
     answers: list[EnrichAnswer]
 
 
+class ExperienceBulletPatch(BaseModel):
+    experience_id: str  # uuid of an existing experience (ids are provided in the inputs)
+    add_bullets: list[str] = Field(default_factory=list)
+    summary: str | None = None
+
+
 class ProfileEnrichment(BaseModel):
     """The patch the LLM proposes from the user's answers. All optional."""
 
@@ -50,6 +56,8 @@ class ProfileEnrichment(BaseModel):
     summary: str | None = None
     target_roles: list[str] = Field(default_factory=list)
     add_skills: list[CvParsedSkill] = Field(default_factory=list)
+    add_education: list[CvParsedEducation] = Field(default_factory=list)
+    experience_updates: list[ExperienceBulletPatch] = Field(default_factory=list)
     change_summary: list[str] = Field(default_factory=list)  # human-readable bullets of what changed
 
 

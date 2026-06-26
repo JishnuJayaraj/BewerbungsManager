@@ -126,6 +126,10 @@ class Profile(SQLModel, table=True):
         default_factory=dict,
         sa_column=Column(JSON, nullable=False),
     )
+    links: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
     raw_cv_text: str | None = None
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -172,6 +176,21 @@ class Project(SQLModel, table=True):
     summary: str | None = None
     tech: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     links: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+
+
+class Education(SQLModel, table=True):
+    __tablename__ = "education"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    profile_id: uuid.UUID = Field(foreign_key="profiles.id", index=True)
+    degree: str
+    institution: str | None = None
+    field_of_study: str | None = None
+    start: date | None = None
+    end: date | None = None
+    grade: str | None = None
+    summary: str | None = None
 
 
 class Application(SQLModel, table=True):

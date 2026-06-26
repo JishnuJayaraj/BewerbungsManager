@@ -8,6 +8,8 @@ import {
   createExperience,
   createProject,
   createSkill,
+  createEducation,
+  deleteEducation,
   deleteExperience,
   deleteProject,
   deleteSearchPreset,
@@ -37,6 +39,7 @@ import {
   saveApplication,
   updateApplicationBrief,
   updateChecklist,
+  updateEducation,
   updateExperience,
   updateProfile,
   updateProject,
@@ -47,6 +50,8 @@ import type {
   ApplicationBriefRequest,
   ApplicationPatch,
   CommsLogCreate,
+  EducationInput,
+  EducationUpdate,
   EnrichAnswer,
   GeneratedArtifact,
   GenerateRequest,
@@ -404,6 +409,20 @@ export function useUpdateProjectMutation() {
 
 export function useDeleteProjectMutation() {
   return useInvalidatingMutation((id: string) => deleteProject(id))
+}
+
+export function useCreateEducationMutation() {
+  return useInvalidatingMutation((input: EducationInput) => createEducation(input))
+}
+
+export function useUpdateEducationMutation() {
+  return useInvalidatingMutation(({ id, input }: { id: string; input: EducationUpdate }) =>
+    updateEducation(id, input),
+  )
+}
+
+export function useDeleteEducationMutation() {
+  return useInvalidatingMutation((id: string) => deleteEducation(id))
 }
 
 function useProfileMutation<TInput>(mutationFn: (input: TInput) => Promise<Profile>) {

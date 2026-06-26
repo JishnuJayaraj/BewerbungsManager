@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlmodel import Session, select
 
 from app.db import get_session, seed_local_user
-from app.models import Experience, Profile, ProfileEntrySource, Project, Skill, SkillKind
+from app.models import Education, Experience, Profile, ProfileEntrySource, Project, Skill, SkillKind
 from app.schemas.enrich import (
     EnrichApplyInputs,
     EnrichApplyRequest,
@@ -19,6 +19,9 @@ from app.schemas.enrich import (
 from app.schemas.profile import (
     CvParseRequest,
     CvParseResult,
+    EducationInput,
+    EducationResponse,
+    EducationUpdate,
     ExperienceInput,
     ExperienceResponse,
     ExperienceUpdate,
@@ -169,6 +172,50 @@ async def enrich_apply(
         existing_skill_names.add(skill.name.casefold())
         added_skills.append(skill.name)
 
+    # Append bullets / summaries to existing experiences referenced by id.
+    if enrichment.experience_updates:
+        experiences = {
+            str(exp.id): exp
+            for exp in session.exec(select(Experience).where(Experience.profile_id == profile.id)).all()
+        }
+        for patch in enrichment.experience_updates:
+            experience = experiences.get(str(patch.experience_id))
+            if experience is None:
+                continue
+            new_bullets = [b for b in patch.add_bullets if b and b not in experience.bullets]
+            if new_bullets:
+                experience.bullets = [*experience.bullets, *new_bullets]
+                changes.append(f"Added {len(new_bullets)} bullet(s) to {experience.title}.")
+            if patch.summary and not experience.summary:
+                experience.summary = patch.summary
+            session.add(experience)
+
+    # Add education the answers revealed (dedup by degree + institution).
+    if enrichment.add_education:
+        existing_edu = {
+            (item.degree.casefold(), (item.institution or "").casefold())
+            for item in session.exec(select(Education).where(Education.profile_id == profile.id)).all()
+        }
+        for edu in enrichment.add_education:
+            key = (edu.degree.casefold(), (edu.institution or "").casefold())
+            if key in existing_edu:
+                continue
+            session.add(
+                Education(
+                    user_id=user.id,
+                    profile_id=profile.id,
+                    degree=edu.degree,
+                    institution=edu.institution,
+                    field_of_study=edu.field_of_study,
+                    start=parse_profile_date(edu.start),
+                    end=parse_profile_date(edu.end),
+                    grade=edu.grade,
+                    summary=edu.summary,
+                )
+            )
+            existing_edu.add(key)
+            changes.append(f"Added education: {edu.degree}.")
+
     if not changes:
         changes = [f"Updated {len(request.answers)} detail(s) from your answers."]
     profile.updated_at = _now()
@@ -294,6 +341,42 @@ def delete_project(project_id: uuid.UUID, session: Session = Depends(get_session
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.post("/education", response_model=EducationResponse, status_code=status.HTTP_201_CREATED)
+def create_education(request: EducationInput, session: Session = Depends(get_session)) -> EducationResponse:
+    user = seed_local_user(session)
+    profile = _get_or_create_profile(session, user.id)
+    item = Education(user_id=user.id, profile_id=profile.id, **_education_data(request.model_dump()))
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return _education_response(item)
+
+
+@router.put("/education/{education_id}", response_model=EducationResponse)
+def update_education(
+    education_id: uuid.UUID,
+    request: EducationUpdate,
+    session: Session = Depends(get_session),
+) -> EducationResponse:
+    user = seed_local_user(session)
+    item = _get_user_child(session, Education, user.id, education_id, "Education")
+    for field, value in _education_data(request.model_dump(exclude_unset=True)).items():
+        setattr(item, field, value)
+    session.add(item)
+    session.commit()
+    session.refresh(item)
+    return _education_response(item)
+
+
+@router.delete("/education/{education_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def delete_education(education_id: uuid.UUID, session: Session = Depends(get_session)) -> Response:
+    user = seed_local_user(session)
+    item = _get_user_child(session, Education, user.id, education_id, "Education")
+    session.delete(item)
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 def _get_or_create_profile(session: Session, user_id: uuid.UUID) -> Profile:
     statement = select(Profile).where(Profile.user_id == user_id)
     profile = session.exec(statement).first()
@@ -311,11 +394,11 @@ def _replace_profile_from_parse(
     user_id: uuid.UUID,
     parsed: CvParseResult,
 ) -> None:
-    for model in (Skill, Experience, Project):
+    for model in (Skill, Experience, Project, Education):
         for row in session.exec(select(model).where(model.user_id == user_id)).all():
             session.delete(row)
 
-    for field in ("full_name", "headline", "seniority", "years_exp", "summary", "locations"):
+    for field in ("full_name", "headline", "seniority", "years_exp", "summary", "locations", "links"):
         setattr(profile, field, getattr(parsed, field))
     profile.updated_at = _now()
     session.add(profile)
@@ -359,6 +442,20 @@ def _replace_profile_from_parse(
                 links=item.links,
             )
         )
+    for item in parsed.education:
+        session.add(
+            Education(
+                user_id=user_id,
+                profile_id=profile.id,
+                degree=item.degree,
+                institution=item.institution,
+                field_of_study=item.field_of_study,
+                start=parse_profile_date(item.start),
+                end=parse_profile_date(item.end),
+                grade=item.grade,
+                summary=item.summary,
+            )
+        )
 
 
 def _profile_response(
@@ -370,6 +467,7 @@ def _profile_response(
     skills = session.exec(select(Skill).where(Skill.profile_id == profile.id).order_by(Skill.name)).all()
     experiences = session.exec(select(Experience).where(Experience.profile_id == profile.id).order_by(Experience.start)).all()
     projects = session.exec(select(Project).where(Project.profile_id == profile.id).order_by(Project.name)).all()
+    education = session.exec(select(Education).where(Education.profile_id == profile.id).order_by(Education.start)).all()
     return ProfileResponse(
         id=profile.id,
         full_name=profile.full_name,
@@ -380,9 +478,11 @@ def _profile_response(
         locations=profile.locations,
         preferences=profile.preferences,
         brief_defaults=profile.brief_defaults,
+        links=profile.links,
         skills=[_skill_response(skill) for skill in skills],
         experiences=[_experience_response(experience) for experience in experiences],
         projects=[_project_response(project) for project in projects],
+        education=[_education_response(item) for item in education],
         parse_warning=parse_warning,
     )
 
@@ -416,6 +516,28 @@ def _project_response(project: Project) -> ProjectResponse:
     )
 
 
+def _education_response(item: Education) -> EducationResponse:
+    return EducationResponse(
+        id=item.id,
+        degree=item.degree,
+        institution=item.institution,
+        field_of_study=item.field_of_study,
+        start=format_profile_date(item.start),
+        end=format_profile_date(item.end),
+        grade=item.grade,
+        summary=item.summary,
+    )
+
+
+def _education_data(data: dict[str, Any]) -> dict[str, Any]:
+    parsed = dict(data)
+    if "start" in parsed:
+        parsed["start"] = parse_profile_date(parsed["start"])
+    if "end" in parsed:
+        parsed["end"] = parse_profile_date(parsed["end"])
+    return parsed
+
+
 def _experience_data(data: dict[str, Any]) -> dict[str, Any]:
     parsed = dict(data)
     if "start" in parsed:
@@ -427,11 +549,11 @@ def _experience_data(data: dict[str, Any]) -> dict[str, Any]:
 
 def _get_user_child(
     session: Session,
-    model: type[Skill] | type[Experience] | type[Project],
+    model: type[Skill] | type[Experience] | type[Project] | type[Education],
     user_id: uuid.UUID,
     row_id: uuid.UUID,
     label: str,
-) -> Skill | Experience | Project:
+) -> Skill | Experience | Project | Education:
     statement = select(model).where(model.user_id == user_id, model.id == row_id)
     row = session.exec(statement).first()
     if row is None:
