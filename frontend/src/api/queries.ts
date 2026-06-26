@@ -4,6 +4,7 @@ import {
   autocompleteSearch,
   basicSearch,
   createSearchPreset,
+  createComms,
   createExperience,
   createProject,
   createSkill,
@@ -11,12 +12,15 @@ import {
   deleteProject,
   deleteSearchPreset,
   deleteSkill,
+  deleteComms,
   exportArtifact,
   generateArtifact,
   getArtifact,
   getHealth,
   getApplication,
   getApplicationBrief,
+  getChecklist,
+  listComms,
   getFit,
   getJobDetail,
   getProfile,
@@ -26,9 +30,11 @@ import {
   listArtifacts,
   listSearchPresets,
   parseCv,
+  patchApplication,
   runFit,
   saveApplication,
   updateApplicationBrief,
+  updateChecklist,
   updateExperience,
   updateProfile,
   updateProject,
@@ -37,6 +43,8 @@ import {
 } from './client'
 import type {
   ApplicationBriefRequest,
+  ApplicationPatch,
+  CommsLogCreate,
   GeneratedArtifact,
   GenerateRequest,
   GeneratableArtifactKind,
@@ -52,6 +60,7 @@ import type {
   SkillInput,
   SkillUpdate,
   RequirementStatus,
+  PackageChecklistRequest,
 } from './schemas'
 
 export const queryKeys = {
@@ -62,6 +71,8 @@ export const queryKeys = {
   application: (id: string) => ['applications', id] as const,
   brief: (id: string) => ['applications', id, 'brief'] as const,
   fit: (id: string) => ['applications', id, 'fit'] as const,
+  checklist: (id: string) => ['applications', id, 'checklist'] as const,
+  comms: (id: string) => ['applications', id, 'comms'] as const,
   artifacts: (id: string, kind?: GeneratableArtifactKind) => ['applications', id, 'artifacts', kind ?? 'all'] as const,
   artifact: (id: string) => ['artifacts', id] as const,
   presets: ['search', 'presets'] as const,
@@ -178,6 +189,17 @@ export function useApplicationQuery(id: string | null) {
   })
 }
 
+export function usePatchApplicationMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: ApplicationPatch }) => patchApplication(id, input),
+    onSuccess: (application) => {
+      queryClient.setQueryData(queryKeys.application(application.id), application)
+      queryClient.invalidateQueries({ queryKey: queryKeys.applications })
+    },
+  })
+}
+
 export function useApplicationBriefQuery(applicationId: string | null) {
   return useQuery({
     queryKey: queryKeys.brief(applicationId ?? ''),
@@ -222,6 +244,53 @@ export function useUpdateRequirementOverrideMutation(applicationId: string) {
       updateRequirementOverride(applicationId, requirementId, userOverride),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.fit(applicationId) })
+    },
+  })
+}
+
+export function useChecklistQuery(applicationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.checklist(applicationId ?? ''),
+    queryFn: () => getChecklist(applicationId ?? ''),
+    enabled: Boolean(applicationId),
+  })
+}
+
+export function useUpdateChecklistMutation(applicationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: PackageChecklistRequest) => updateChecklist(applicationId, input),
+    onSuccess: (checklist) => {
+      queryClient.setQueryData(queryKeys.checklist(applicationId), checklist)
+      queryClient.invalidateQueries({ queryKey: queryKeys.applications })
+    },
+  })
+}
+
+export function useCommsQuery(applicationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.comms(applicationId ?? ''),
+    queryFn: () => listComms(applicationId ?? ''),
+    enabled: Boolean(applicationId),
+  })
+}
+
+export function useCreateCommsMutation(applicationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CommsLogCreate) => createComms(applicationId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comms(applicationId) })
+    },
+  })
+}
+
+export function useDeleteCommsMutation(applicationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (entryId: string) => deleteComms(applicationId, entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comms(applicationId) })
     },
   })
 }

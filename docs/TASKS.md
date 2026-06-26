@@ -323,7 +323,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   shows old vs new bullets; regenerate keeps history; export produces usable output.
 - **Handoff note:** _Done. Workspace artifacts panel supports cover letter/CV bullets/portal answer generation, regenerate instructions, version switching, citation and unsupported-claim rendering, CV before/after diff, Markdown/copy/PDF export via typed artifact API hooks._
 
-### [ ] Task 16 — Kanban board, next action, comms log, package checklist (F)
+### [x] Task 16 — Kanban board, next action, comms log, package checklist (F)
 - **Depends on:** 07, 10, 14.
 - **Inputs:** SPEC §5.5, §5.6; UI.md §5 (Kanban board); API.md (`/api/applications`, `.../comms`,
   `.../checklist`).
@@ -332,7 +332,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   checklist on card + workspace.
 - **Done when:** cards move and persist order/status; next action + follow-up date save; comms
   entries timeline works; checklist editable and reflects fit-derived gaps.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Board now uses dnd-kit kanban with persisted status/order moves, card next-action/follow-up edits, checklist progress plus editable package checklist, and comms timeline; checklist/comms panels are also available in Workspace._
 
 ---
 
@@ -371,5 +371,5 @@ Update as tasks complete (mirror the checkboxes above):
 - [x] 13 Search UI + save job
 - [x] 14 Workspace UI
 - [x] 15 Artifacts UI
-- [ ] 16 Kanban + comms + checklist UI
+- [x] 16 Kanban + comms + checklist UI
 - [ ] 17 E2E, seed, docs

@@ -4,6 +4,7 @@ import {
   applicationBriefRequestSchema,
   applicationBriefSchema,
   applicationListSchema,
+  applicationPatchSchema,
   applicationSaveSchema,
   applicationSchema,
   autocompleteSuggestionSchema,
@@ -32,6 +33,11 @@ import {
   generatedArtifactListSchema,
   generatedArtifactSchema,
   generateRequestSchema,
+  commsLogCreateSchema,
+  commsLogListSchema,
+  commsLogSchema,
+  packageChecklistRequestSchema,
+  packageChecklistSchema,
   requirementCheckSchema,
   requirementOverrideRequestSchema,
   type ApiErrorPayload,
@@ -39,6 +45,9 @@ import {
   type ApplicationBrief,
   type ApplicationBriefRequest,
   type ApplicationList,
+  type ApplicationPatch,
+  type CommsLogCreate,
+  type CommsLogEntry,
   type AutocompleteSuggestion,
   type BasicSearchRequest,
   type Experience,
@@ -65,6 +74,8 @@ import {
   type GeneratedArtifactList,
   type GenerateRequest,
   type GeneratableArtifactKind,
+  type PackageChecklist,
+  type PackageChecklistRequest,
   type RequirementCheck,
   type RequirementStatus,
 } from './schemas'
@@ -215,6 +226,14 @@ export function getApplication(id: string): Promise<Application> {
   return apiRequest(`/api/applications/${id}`, { schema: applicationSchema })
 }
 
+export function patchApplication(id: string, input: ApplicationPatch): Promise<Application> {
+  return apiRequest(`/api/applications/${id}`, {
+    method: 'PATCH',
+    body: applicationPatchSchema.parse(input),
+    schema: applicationSchema,
+  })
+}
+
 export function getApplicationBrief(applicationId: string): Promise<ApplicationBrief> {
   return apiRequest(`/api/applications/${applicationId}/brief`, { schema: applicationBriefSchema })
 }
@@ -250,6 +269,40 @@ export function updateRequirementOverride(
     method: 'PATCH',
     body: requirementOverrideRequestSchema.parse({ user_override: userOverride }),
     schema: requirementCheckSchema,
+  })
+}
+
+export function getChecklist(applicationId: string): Promise<PackageChecklist> {
+  return apiRequest(`/api/applications/${applicationId}/checklist`, { schema: packageChecklistSchema })
+}
+
+export function updateChecklist(
+  applicationId: string,
+  input: PackageChecklistRequest,
+): Promise<PackageChecklist> {
+  return apiRequest(`/api/applications/${applicationId}/checklist`, {
+    method: 'PUT',
+    body: packageChecklistRequestSchema.parse(input),
+    schema: packageChecklistSchema,
+  })
+}
+
+export function listComms(applicationId: string): Promise<{ items: CommsLogEntry[]; page: number; total: number }> {
+  return apiRequest(`/api/applications/${applicationId}/comms`, { schema: commsLogListSchema })
+}
+
+export function createComms(applicationId: string, input: CommsLogCreate): Promise<CommsLogEntry> {
+  return apiRequest(`/api/applications/${applicationId}/comms`, {
+    method: 'POST',
+    body: commsLogCreateSchema.parse(input),
+    schema: commsLogSchema,
+  })
+}
+
+export function deleteComms(applicationId: string, entryId: string): Promise<null> {
+  return apiRequest(`/api/applications/${applicationId}/comms/${entryId}`, {
+    method: 'DELETE',
+    schema: z.null(),
   })
 }
 

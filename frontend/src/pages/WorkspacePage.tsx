@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
+import { CommsLogPanel, PackageChecklistPanel } from '../components/ApplicationPanels'
 import {
   ApiError,
   useApplicationBriefQuery,
@@ -180,6 +181,8 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
             error={updateRequirement.error}
           />
           <MatchedEvidence evidence={evidence} requirements={fit.data?.requirements ?? []} />
+          <PackageChecklistPanel applicationId={applicationId} />
+          <CommsLogPanel applicationId={applicationId} />
         </aside>
       </div>
     </section>

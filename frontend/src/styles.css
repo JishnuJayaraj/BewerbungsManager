@@ -202,6 +202,255 @@ p {
   gap: 20px;
 }
 
+.board-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.board-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: none;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 20px;
+  align-items: start;
+}
+
+.kanban-columns {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(220px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.kanban-column {
+  min-height: 520px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+  border: 1px solid #d8ddd2;
+  border-radius: 8px;
+  background: #f8faf7;
+  padding: 12px;
+}
+
+.kanban-column-over {
+  border-color: #8fa89d;
+  background: #edf3ef;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kanban-column-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.kanban-column-header span {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #405049;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.kanban-card-list {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.kanban-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d8ddd2;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px;
+  box-shadow: 0 8px 18px rgb(31 41 35 / 8%);
+}
+
+.kanban-card-selected {
+  border-color: #8fa89d;
+  background: #fbfdfb;
+}
+
+.kanban-card-dragging {
+  opacity: 0.72;
+}
+
+.drag-handle {
+  min-height: 28px;
+  justify-self: start;
+  border-color: #c8d0c6;
+  background: #ffffff;
+  color: #405049;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+}
+
+.drag-handle:hover {
+  background: #f6f7f3;
+}
+
+.kanban-card-body {
+  min-height: 92px;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  border: 0;
+  background: transparent;
+  color: #243029;
+  padding: 0;
+  text-align: left;
+}
+
+.kanban-card-body:hover {
+  background: transparent;
+}
+
+.kanban-card-body span,
+.kanban-card-body small,
+.kanban-card-body em {
+  color: #59655e;
+  font-size: 0.88rem;
+  font-style: normal;
+}
+
+.board-detail,
+.board-detail-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.board-detail {
+  position: sticky;
+  top: 16px;
+}
+
+.board-detail-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8ddd2;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.board-detail-card h3 {
+  margin: 0;
+}
+
+.next-action-form,
+.checklist-form,
+.comms-form {
+  display: grid;
+  gap: 12px;
+}
+
+.checklist-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #e6eae3;
+  padding-top: 8px;
+}
+
+.checklist-summary div {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.checklist-summary span {
+  color: #59655e;
+  font-size: 0.82rem;
+}
+
+.mini-pill {
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-weight: 800;
+}
+
+.mini-pill-ok {
+  background: #e3f3e8;
+  color: #27633e;
+}
+
+.mini-pill-warn {
+  background: #fff4d7;
+  color: #76530f;
+}
+
+.checklist-toggles,
+.checklist-items {
+  display: grid;
+  gap: 8px;
+}
+
+.checklist-items {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.checklist-toggles label,
+.checklist-items label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  color: #405049;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.checklist-toggles input,
+.checklist-items input {
+  width: auto;
+  min-height: auto;
+}
+
+.comms-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.comms-entry {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #e6eae3;
+  padding-top: 10px;
+}
+
+.comms-entry div {
+  display: grid;
+  gap: 3px;
+}
+
+.comms-entry span {
+  color: #59655e;
+  font-size: 0.84rem;
+}
+
+.comms-entry p {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
 .workspace-heading {
   display: flex;
   align-items: end;
@@ -1042,6 +1291,8 @@ p {
   .app-header,
   .settings-grid,
   .inline-form,
+  .board-heading,
+  .board-grid,
   .search-heading,
   .search-grid,
   .workspace-heading,
@@ -1055,9 +1306,14 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .board-heading,
   .search-heading,
   .workspace-heading {
     align-items: start;
+  }
+
+  .board-detail {
+    position: static;
   }
 
   .app-header {

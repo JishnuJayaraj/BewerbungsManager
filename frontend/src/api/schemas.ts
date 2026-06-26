@@ -163,6 +163,15 @@ export const applicationSaveSchema = z.object({
   job_uuid: z.string().min(1),
 })
 
+export const applicationPatchSchema = z.object({
+  status: applicationStatusSchema.optional(),
+  board_order: z.number().optional(),
+  next_action: z.string().nullable().optional(),
+  followup_date: z.string().nullable().optional(),
+  needs_followup: z.boolean().optional(),
+  contact: z.record(z.string(), z.unknown()).nullable().optional(),
+})
+
 export const briefLanguageSchema = z.enum(['DE', 'EN'])
 
 export const applicationBriefSchema = z.object({
@@ -306,6 +315,75 @@ export const portalAnswerContentSchema = z.object({
   claims: z.array(z.object({ claim: z.string(), evidence_ref: z.string().nullable().optional() })).default([]),
 })
 
+export const workPermitStatusSchema = z.enum([
+  'NOT_RELEVANT',
+  'EU_CITIZEN',
+  'HAVE_PERMIT',
+  'NEED_SPONSORSHIP',
+  'UNKNOWN',
+])
+
+export const packageChecklistItemsSchema = z.object({
+  cv_reviewed: z.boolean(),
+  cover_letter: z.boolean(),
+  requirements_checked: z.boolean(),
+  salary_set: z.boolean(),
+  start_date_set: z.boolean(),
+  language_ok: z.boolean(),
+  work_permit_ok: z.boolean(),
+  certificates: z.boolean(),
+  portal_answers: z.boolean(),
+  submitted: z.boolean(),
+  followup_set: z.boolean(),
+})
+
+export const packageChecklistSchema = z.object({
+  id: z.string(),
+  application_id: z.string(),
+  salary_expectation: z.string().nullable(),
+  earliest_start_date: z.string().nullable(),
+  language_level_required: z.string().nullable(),
+  language_level_user: z.string().nullable(),
+  work_permit_status: workPermitStatusSchema,
+  certificates_ready: z.boolean(),
+  cover_letter_required: z.boolean(),
+  items: packageChecklistItemsSchema,
+  notes: z.string().nullable(),
+})
+
+export const packageChecklistRequestSchema = packageChecklistSchema.omit({
+  id: true,
+  application_id: true,
+})
+
+export const commsKindSchema = z.enum(['EMAIL', 'CALL', 'NOTE', 'EVENT'])
+export const commsDirectionSchema = z.enum(['INBOUND', 'OUTBOUND', 'NONE'])
+
+export const commsLogSchema = z.object({
+  id: z.string(),
+  application_id: z.string(),
+  kind: commsKindSchema,
+  occurred_at: z.string(),
+  subject: z.string().nullable(),
+  body: z.string(),
+  direction: commsDirectionSchema,
+  created_at: z.string(),
+})
+
+export const commsLogListSchema = z.object({
+  items: z.array(commsLogSchema),
+  page: z.number(),
+  total: z.number(),
+})
+
+export const commsLogCreateSchema = z.object({
+  kind: commsKindSchema,
+  occurred_at: z.string().nullable().optional(),
+  subject: z.string().nullable().optional(),
+  body: z.string().min(1),
+  direction: commsDirectionSchema.default('NONE'),
+})
+
 export const jobSuggestionSchema = z.object({
   role: z.string(),
   rationale: z.string(),
@@ -425,6 +503,8 @@ export type SearchPresetList = z.infer<typeof searchPresetListSchema>
 export type JobDetail = z.infer<typeof jobDetailSchema>
 export type Application = z.infer<typeof applicationSchema>
 export type ApplicationList = z.infer<typeof applicationListSchema>
+export type ApplicationStatus = z.infer<typeof applicationStatusSchema>
+export type ApplicationPatch = z.infer<typeof applicationPatchSchema>
 export type ApplicationBrief = z.infer<typeof applicationBriefSchema>
 export type ApplicationBriefRequest = z.infer<typeof applicationBriefRequestSchema>
 export type BriefLanguage = z.infer<typeof briefLanguageSchema>
@@ -441,6 +521,14 @@ export type VerifiedCitation = z.infer<typeof verifiedCitationSchema>
 export type CoverLetterContent = z.infer<typeof coverLetterContentSchema>
 export type CvBulletSuggestionsContent = z.infer<typeof cvBulletSuggestionsContentSchema>
 export type PortalAnswerContent = z.infer<typeof portalAnswerContentSchema>
+export type PackageChecklist = z.infer<typeof packageChecklistSchema>
+export type PackageChecklistRequest = z.infer<typeof packageChecklistRequestSchema>
+export type PackageChecklistItems = z.infer<typeof packageChecklistItemsSchema>
+export type WorkPermitStatus = z.infer<typeof workPermitStatusSchema>
+export type CommsLogEntry = z.infer<typeof commsLogSchema>
+export type CommsLogCreate = z.infer<typeof commsLogCreateSchema>
+export type CommsKind = z.infer<typeof commsKindSchema>
+export type CommsDirection = z.infer<typeof commsDirectionSchema>
 export type JobSuggestion = z.infer<typeof jobSuggestionSchema>
 export type SuggestResponse = z.infer<typeof suggestResponseSchema>
 export type Profile = z.infer<typeof profileSchema>
