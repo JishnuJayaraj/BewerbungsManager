@@ -1,33 +1,48 @@
 import { z } from 'zod'
 import {
   apiErrorSchema,
+  applicationSaveSchema,
+  applicationSchema,
+  autocompleteSuggestionSchema,
   basicSearchRequestSchema,
   cvParseRequestSchema,
   experienceInputSchema,
   experienceSchema,
   experienceUpdateSchema,
   healthSchema,
+  jobDetailSchema,
   profileSchema,
   profileUpdateSchema,
   projectInputSchema,
   projectSchema,
   projectUpdateSchema,
+  searchBodySchema,
+  searchPresetCreateSchema,
+  searchPresetListSchema,
+  searchPresetSchema,
   searchResponseSchema,
   settingsSchema,
   skillInputSchema,
   skillSchema,
   skillUpdateSchema,
   type ApiErrorPayload,
+  type Application,
+  type AutocompleteSuggestion,
   type BasicSearchRequest,
   type Experience,
   type ExperienceInput,
   type ExperienceUpdate,
   type Health,
+  type JobDetail,
   type Profile,
   type ProfileUpdate,
   type Project,
   type ProjectInput,
   type ProjectUpdate,
+  type SearchBody,
+  type SearchPreset,
+  type SearchPresetCreate,
+  type SearchPresetList,
   type SearchResponse,
   type Settings,
   type Skill,
@@ -124,6 +139,67 @@ export function basicSearch(input: BasicSearchRequest): Promise<SearchResponse> 
     method: 'POST',
     body: basicSearchRequestSchema.parse(input),
     schema: searchResponseSchema,
+  })
+}
+
+export function advancedSearch(input: SearchBody): Promise<SearchResponse> {
+  return apiRequest('/api/search/advanced', {
+    method: 'POST',
+    body: searchBodySchema.parse(input),
+    schema: searchResponseSchema,
+  })
+}
+
+export function autocompleteSearch(phrase: string, size = 8): Promise<AutocompleteSuggestion[]> {
+  const params = new URLSearchParams({ phrase, size: String(size) })
+  return apiRequest(`/api/search/autocomplete?${params.toString()}`, {
+    schema: z.array(autocompleteSuggestionSchema),
+  })
+}
+
+export function listSearchPresets(): Promise<SearchPresetList> {
+  return apiRequest('/api/search/presets', { schema: searchPresetListSchema })
+}
+
+export function createSearchPreset(input: SearchPresetCreate): Promise<SearchPreset> {
+  return apiRequest('/api/search/presets', {
+    method: 'POST',
+    body: searchPresetCreateSchema.parse(input),
+    schema: searchPresetSchema,
+  })
+}
+
+export function deleteSearchPreset(id: string): Promise<null> {
+  return apiRequest(`/api/search/presets/${id}`, {
+    method: 'DELETE',
+    schema: z.null(),
+  })
+}
+
+export function getJobDetail(uuid: string): Promise<JobDetail> {
+  return apiRequest(`/api/jobs/${uuid}`, { schema: jobDetailSchema })
+}
+
+export function saveApplication(jobUuid: string): Promise<Application> {
+  return apiRequest('/api/applications', {
+    method: 'POST',
+    body: applicationSaveSchema.parse({ job_uuid: jobUuid }),
+    schema: applicationSchema,
+  })
+}
+
+export function getSuggestions(): Promise<{ suggestions: Array<{ role: string; rationale: string; search: SearchBody }> }> {
+  return apiRequest('/api/suggestions', {
+    method: 'POST',
+    schema: z.object({
+      suggestions: z.array(
+        z.object({
+          role: z.string(),
+          rationale: z.string(),
+          search: searchBodySchema,
+        }),
+      ),
+    }),
   })
 }
 

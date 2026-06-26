@@ -289,7 +289,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   no parse.
 - **Handoff note:** _Done. Profile page now loads/saves identity + brief defaults, parses pasted CV into editable state, and supports manual create/update/delete for skills, experiences with bullets, and projects via typed API hooks._
 
-### [ ] Task 13 — Search UI + save job (F)
+### [x] Task 13 — Search UI + save job (F)
 - **Depends on:** 04, 07 (save-to-board: `POST /api/applications`), 10 (`/api/suggestions`), 11.
 - **Inputs:** SPEC §5.2 (layered), TECHNICAL §5; UI.md §2 (Search page); API.md (`/api/search*`,
   `/api/jobs/*`, `/api/suggestions`).
@@ -298,7 +298,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   jargon in the basic tier.
 - **Done when:** basic + advanced search work, facets filter, a job can be saved (creates
   application), presets save/replay.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Search page now supports basic search, advanced HR4U filters, aggregation facets, job detail, save-to-board with workspace link, suggestions replay, and saved preset create/replay/delete via typed API hooks._
 
 ### [ ] Task 14 — Workspace UI: brief, fit, requirements, evidence (F)
 - **Depends on:** 07, 08, 12, 13.
@@ -368,7 +368,7 @@ Update as tasks complete (mirror the checkboxes above):
 - [x] 10 Package checklist + suggestions
 - [x] 11 Frontend foundation
 - [x] 12 Profile editor UI
-- [ ] 13 Search UI + save job
+- [x] 13 Search UI + save job
 - [ ] 14 Workspace UI
 - [ ] 15 Artifacts UI
 - [ ] 16 Kanban + comms + checklist UI

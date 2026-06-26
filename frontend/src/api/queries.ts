@@ -1,16 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  advancedSearch,
+  autocompleteSearch,
   basicSearch,
+  createSearchPreset,
   createExperience,
   createProject,
   createSkill,
   deleteExperience,
   deleteProject,
+  deleteSearchPreset,
   deleteSkill,
   getHealth,
+  getJobDetail,
   getProfile,
   getSettings,
+  getSuggestions,
+  listSearchPresets,
   parseCv,
+  saveApplication,
   updateExperience,
   updateProfile,
   updateProject,
@@ -18,6 +26,8 @@ import {
 } from './client'
 import type {
   BasicSearchRequest,
+  SearchBody,
+  SearchPresetCreate,
   ExperienceInput,
   ExperienceUpdate,
   Profile,
@@ -32,6 +42,9 @@ export const queryKeys = {
   health: ['health'] as const,
   settings: ['settings'] as const,
   profile: ['profile'] as const,
+  presets: ['search', 'presets'] as const,
+  autocomplete: (phrase: string) => ['search', 'autocomplete', phrase] as const,
+  jobDetail: (uuid: string) => ['jobs', uuid] as const,
   basicSearch: (request: BasicSearchRequest) => ['search', 'basic', request] as const,
 }
 
@@ -54,6 +67,73 @@ export function useBasicSearchQuery(request: BasicSearchRequest, enabled: boolea
     queryKey: queryKeys.basicSearch(request),
     queryFn: () => basicSearch(request),
     enabled,
+  })
+}
+
+export function useAutocompleteQuery(phrase: string) {
+  return useQuery({
+    queryKey: queryKeys.autocomplete(phrase),
+    queryFn: () => autocompleteSearch(phrase),
+    enabled: phrase.trim().length >= 2,
+  })
+}
+
+export function useJobDetailQuery(uuid: string | null) {
+  return useQuery({
+    queryKey: queryKeys.jobDetail(uuid ?? ''),
+    queryFn: () => getJobDetail(uuid ?? ''),
+    enabled: Boolean(uuid),
+  })
+}
+
+export function useSearchPresetsQuery() {
+  return useQuery({
+    queryKey: queryKeys.presets,
+    queryFn: listSearchPresets,
+  })
+}
+
+export function useBasicSearchMutation() {
+  return useMutation({
+    mutationFn: (request: BasicSearchRequest) => basicSearch(request),
+  })
+}
+
+export function useAdvancedSearchMutation() {
+  return useMutation({
+    mutationFn: (body: SearchBody) => advancedSearch(body),
+  })
+}
+
+export function useCreateSearchPresetMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: SearchPresetCreate) => createSearchPreset(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.presets })
+    },
+  })
+}
+
+export function useDeleteSearchPresetMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => deleteSearchPreset(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.presets })
+    },
+  })
+}
+
+export function useSaveApplicationMutation() {
+  return useMutation({
+    mutationFn: (jobUuid: string) => saveApplication(jobUuid),
+  })
+}
+
+export function useSuggestionsMutation() {
+  return useMutation({
+    mutationFn: getSuggestions,
   })
 }
 

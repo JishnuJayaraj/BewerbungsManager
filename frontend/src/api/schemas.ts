@@ -53,6 +53,120 @@ export const searchResponseSchema = z.object({
   deduped: z.number(),
 })
 
+export const searchBodySchema = z.record(z.string(), z.unknown())
+
+export const autocompleteSuggestionSchema = z.object({
+  uuid: z.string(),
+  title: z.string().nullable(),
+  company: z.string().nullable(),
+})
+
+export const searchPresetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  query_json: searchBodySchema,
+  created_at: z.string(),
+})
+
+export const searchPresetListSchema = z.object({
+  items: z.array(searchPresetSchema),
+  page: z.number(),
+  total: z.number(),
+})
+
+export const searchPresetCreateSchema = z.object({
+  name: z.string().min(1),
+  query_json: searchBodySchema,
+})
+
+export const hr4uAddressSchema = z
+  .object({
+    place: z.string().nullable().optional(),
+    country: z.string().nullable().optional(),
+    county: z.string().nullable().optional(),
+    zipCode: z.string().nullable().optional(),
+    street: z.string().nullable().optional(),
+    streetNumber: z.string().nullable().optional(),
+  })
+  .passthrough()
+
+export const hr4uCounterpartSchema = z
+  .object({
+    firstName: z.string().nullable().optional(),
+    lastName: z.string().nullable().optional(),
+    role: z.string().nullable().optional(),
+    department: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
+    email: z.string().nullable().optional(),
+  })
+  .passthrough()
+
+export const hr4uTextSchema = z
+  .object({
+    title: z.string().nullable().optional(),
+    fulltext: z.string().nullable().optional(),
+    tasks: z.array(z.string()).default([]),
+    requirements: z.array(z.string()).default([]),
+    benefits: z.array(z.string()).default([]),
+  })
+  .passthrough()
+
+export const hr4uClassificationsSchema = z
+  .object({
+    companyType: z.string().nullable().optional(),
+    contractTypes: z.array(z.string()).default([]),
+    employmentTypes: z.array(z.string()).default([]),
+    jobTypes: z.array(z.string()).default([]),
+    occupationAreas: z.array(z.string()).default([]),
+  })
+  .passthrough()
+
+export const jobDetailSchema = z
+  .object({
+    uuid: z.string(),
+    link: z.string().nullable().optional(),
+    company: z.string().nullable().optional(),
+    companyCleaned: z.string().nullable().optional(),
+    text: hr4uTextSchema,
+    addresses: z.array(hr4uAddressSchema).default([]),
+    counterpart: hr4uCounterpartSchema.nullable().optional(),
+    classifications: hr4uClassificationsSchema,
+  })
+  .passthrough()
+
+export const applicationStatusSchema = z.enum(['SAVED', 'APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'CLOSED'])
+
+export const applicationSchema = z.object({
+  id: z.string(),
+  job_uuid: z.string(),
+  job_snapshot: z.record(z.string(), z.unknown()),
+  job_title: z.string(),
+  company: z.string().nullable(),
+  status: applicationStatusSchema,
+  board_order: z.number(),
+  contact: z.record(z.string(), z.unknown()),
+  next_action: z.string().nullable(),
+  followup_date: z.string().nullable(),
+  needs_followup: z.boolean(),
+  applied_at: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export const applicationSaveSchema = z.object({
+  job_uuid: z.string().min(1),
+})
+
+export const jobSuggestionSchema = z.object({
+  role: z.string(),
+  rationale: z.string(),
+  search: searchBodySchema,
+})
+
+export const suggestResponseSchema = z.object({
+  suggestions: z.array(jobSuggestionSchema),
+})
+
 export const skillKindSchema = z.enum(['IT_SKILL', 'SOFT_SKILL', 'LANGUAGE', 'CERT'])
 export const profileEntrySourceSchema = z.enum(['CV', 'MANUAL'])
 
@@ -152,8 +266,17 @@ export type ApiErrorPayload = z.infer<typeof apiErrorSchema>['error']
 export type Health = z.infer<typeof healthSchema>
 export type Settings = z.infer<typeof settingsSchema>
 export type BasicSearchRequest = z.infer<typeof basicSearchRequestSchema>
+export type SearchBody = z.infer<typeof searchBodySchema>
 export type SearchResponse = z.infer<typeof searchResponseSchema>
 export type JobSummary = z.infer<typeof jobSummarySchema>
+export type AutocompleteSuggestion = z.infer<typeof autocompleteSuggestionSchema>
+export type SearchPreset = z.infer<typeof searchPresetSchema>
+export type SearchPresetCreate = z.infer<typeof searchPresetCreateSchema>
+export type SearchPresetList = z.infer<typeof searchPresetListSchema>
+export type JobDetail = z.infer<typeof jobDetailSchema>
+export type Application = z.infer<typeof applicationSchema>
+export type JobSuggestion = z.infer<typeof jobSuggestionSchema>
+export type SuggestResponse = z.infer<typeof suggestResponseSchema>
 export type Profile = z.infer<typeof profileSchema>
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
 export type Skill = z.infer<typeof skillSchema>
