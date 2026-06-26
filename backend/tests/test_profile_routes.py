@@ -161,3 +161,23 @@ def test_manual_profile_skill_experience_project_crud_and_brief_defaults(tmp_pat
     assert empty_profile["skills"] == []
     assert empty_profile["experiences"] == []
     assert empty_profile["projects"] == []
+
+
+def test_cv_parse_result_coerces_loose_llm_shapes() -> None:
+    from app.schemas.profile import CvParseResult
+
+    result = CvParseResult.model_validate(
+        {
+            "full_name": "Ada",
+            "skills": ["Python", "AWS", "German B2", {"name": "Teamwork"}],
+            "experiences": ["Backend Engineer"],
+            "projects": ["JobCraft"],
+        }
+    )
+
+    kinds = {skill.name: skill.kind.value for skill in result.skills}
+    assert kinds["Python"] == "IT_SKILL"
+    assert kinds["German B2"] == "LANGUAGE"
+    assert kinds["Teamwork"] == "IT_SKILL"  # dict missing kind gets a default
+    assert result.experiences[0].title == "Backend Engineer"
+    assert result.projects[0].name == "JobCraft"

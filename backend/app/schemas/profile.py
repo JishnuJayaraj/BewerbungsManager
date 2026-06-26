@@ -1,12 +1,31 @@
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import date
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models import ProfileEntrySource, SkillKind
+
+_LANGUAGE_LEVEL = re.compile(r"\b[abc][12]\b", re.IGNORECASE)
+_LANGUAGE_HINTS = ("german", "english", "deutsch", "französisch", "french", "spanish", "spanisch", "sprache", "language")
+
+
+def _infer_skill_kind(name: str) -> SkillKind:
+    lowered = name.lower()
+    if _LANGUAGE_LEVEL.search(lowered) or any(hint in lowered for hint in _LANGUAGE_HINTS):
+        return SkillKind.LANGUAGE
+    return SkillKind.IT_SKILL
+
+
+def _coerce_skill(value: Any) -> Any:
+    if isinstance(value, str):
+        return {"name": value, "kind": _infer_skill_kind(value)}
+    if isinstance(value, dict) and value.get("name") and not value.get("kind"):
+        return {**value, "kind": _infer_skill_kind(str(value["name"]))}
+    return value
 
 
 class CvParseRequest(BaseModel):
@@ -156,6 +175,27 @@ class CvParseResult(BaseModel):
     skills: list[CvParsedSkill] = Field(default_factory=list)
     experiences: list[CvParsedExperience] = Field(default_factory=list)
     projects: list[CvParsedProject] = Field(default_factory=list)
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def _coerce_skills(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [_coerce_skill(item) for item in value]
+        return value
+
+    @field_validator("experiences", mode="before")
+    @classmethod
+    def _coerce_experiences(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [{"title": item} if isinstance(item, str) else item for item in value]
+        return value
+
+    @field_validator("projects", mode="before")
+    @classmethod
+    def _coerce_projects(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return [{"name": item} if isinstance(item, str) else item for item in value]
+        return value
 
 
 def parse_profile_date(value: str | None) -> date | None:
