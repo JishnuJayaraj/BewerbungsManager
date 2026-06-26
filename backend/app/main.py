@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import Settings, get_settings
-from app.routers import applications, fit, generate, jobs, profile, search
+from app.routers import applications, checklist, fit, generate, jobs, profile, search, suggestions
 
 
 class SettingsResponse(BaseModel):
@@ -100,6 +100,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(applications.router)
     app.include_router(fit.router)
     app.include_router(generate.router)
+    app.include_router(checklist.router)
+    app.include_router(suggestions.router)
 
     return app
 

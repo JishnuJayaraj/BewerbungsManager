@@ -250,7 +250,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** UI, checklist.
 - **Handoff note:** _Done. Generate service/router added for cover letters, CV bullet suggestions, and portal answers with citation verification, version history/current flags, artifact read/list, and Markdown/PDF export._
 
-### [ ] Task 10 — Germany package checklist + job suggestions (B)
+### [x] Task 10 — Germany package checklist + job suggestions (B)
 - **Depends on:** 06, 07, 08.
 - **Inputs:** SPEC §5.6 (PackageChecklist), §5.2 (LLM job suggestions), §6 mode 2; TECHNICAL §4;
   API.md (`.../checklist`, `/api/suggestions`); LLM_CONTRACTS.md §2 (`suggest` schema).
@@ -261,7 +261,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Done when:** checklist persists per application and reflects language gaps from fit; suggestions
   return runnable queries that the search endpoint accepts.
 - **Not in this task:** UI.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. PackageChecklist GET/PUT added with auto-create, Germany item normalization, fit-derived German language gap prefill, plus `/api/suggestions` backed by LLM suggest output and runnable HR4U search bodies._
 
 ---
 
