@@ -74,7 +74,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   `PackageChecklist` (1:1); `PORTAL_ANSWER`≠`ANSWER_DRAFT` documented; broken `pitfalls #N` refs
   in Tasks 05/09 replaced with concrete text. API.md/LLM_CONTRACTS.md/UI.md are authoritative._
 
-### [ ] Task 01A — Backend scaffold & config (B)
+### [x] Task 01A — Backend scaffold & config (B)
 - **Depends on:** 00, 00B.
 - **Inputs:** TECHNICAL §1, §3, §8; API.md (conventions, `/health`, `/api/settings`).
 - **Scope:** Create `backend/` (FastAPI + pyproject/uv, `app/main.py` with `GET /health`,
@@ -88,7 +88,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   (no secrets); config loads `.env` without crashing when optional keys absent; error shape matches
   API.md.
 - **Not in this task:** models, feature endpoints, frontend.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. FastAPI backend scaffold added with pydantic-settings config, Mistral/GDPR default, `/health`, read-only `/api/settings`, normalized API error shape, uv project/tests, and README run instructions._
 
 ### [ ] Task 01B — Frontend scaffold (F)
 - **Depends on:** 01A.
