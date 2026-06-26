@@ -153,8 +153,84 @@ export const applicationSchema = z.object({
   updated_at: z.string(),
 })
 
+export const applicationListSchema = z.object({
+  items: z.array(applicationSchema),
+  page: z.number(),
+  total: z.number(),
+})
+
 export const applicationSaveSchema = z.object({
   job_uuid: z.string().min(1),
+})
+
+export const briefLanguageSchema = z.enum(['DE', 'EN'])
+
+export const applicationBriefSchema = z.object({
+  id: z.string(),
+  application_id: z.string(),
+  target_angle: z.string().nullable(),
+  emphasize: z.array(z.string()),
+  avoid: z.string().nullable(),
+  tone: z.string().nullable(),
+  language: briefLanguageSchema,
+  company_motivation: z.string().nullable(),
+  user_notes: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
+export const applicationBriefRequestSchema = z.object({
+  target_angle: z.string().nullable().optional(),
+  emphasize: z.array(z.string()).nullable().optional(),
+  avoid: z.string().nullable().optional(),
+  tone: z.string().nullable().optional(),
+  language: briefLanguageSchema.nullable().optional(),
+  company_motivation: z.string().nullable().optional(),
+  user_notes: z.string().nullable().optional(),
+})
+
+export const requirementStatusSchema = z.enum(['HAVE', 'PARTIAL', 'MISSING'])
+
+export const evidencePointSchema = z.object({
+  point: z.string(),
+  evidence_ref: z.string().nullable().optional(),
+})
+
+export const unknownPointSchema = z.object({
+  point: z.string(),
+})
+
+export const riskPointSchema = z.object({
+  risk: z.string(),
+  honest_framing: z.string(),
+})
+
+export const fitAnalysisSchema = z.object({
+  summary: z.string(),
+  strong_matches: z.array(evidencePointSchema).default([]),
+  weak_matches: z.array(evidencePointSchema).default([]),
+  unknowns: z.array(unknownPointSchema).default([]),
+  suggested_angle: z.string().nullable().optional(),
+  risks_to_address: z.array(riskPointSchema).default([]),
+  do_not_claim: z.array(z.string()).default([]),
+})
+
+export const requirementCheckSchema = z.object({
+  id: z.string(),
+  requirement: z.string(),
+  status: requirementStatusSchema,
+  evidence: z.array(z.string()),
+  user_override: requirementStatusSchema.nullable(),
+})
+
+export const fitResponseSchema = z.object({
+  artifact_id: z.string(),
+  fit: fitAnalysisSchema,
+  requirements: z.array(requirementCheckSchema),
+})
+
+export const requirementOverrideRequestSchema = z.object({
+  user_override: requirementStatusSchema.nullable(),
 })
 
 export const jobSuggestionSchema = z.object({
@@ -275,6 +351,14 @@ export type SearchPresetCreate = z.infer<typeof searchPresetCreateSchema>
 export type SearchPresetList = z.infer<typeof searchPresetListSchema>
 export type JobDetail = z.infer<typeof jobDetailSchema>
 export type Application = z.infer<typeof applicationSchema>
+export type ApplicationList = z.infer<typeof applicationListSchema>
+export type ApplicationBrief = z.infer<typeof applicationBriefSchema>
+export type ApplicationBriefRequest = z.infer<typeof applicationBriefRequestSchema>
+export type BriefLanguage = z.infer<typeof briefLanguageSchema>
+export type FitResponse = z.infer<typeof fitResponseSchema>
+export type FitAnalysis = z.infer<typeof fitAnalysisSchema>
+export type RequirementCheck = z.infer<typeof requirementCheckSchema>
+export type RequirementStatus = z.infer<typeof requirementStatusSchema>
 export type JobSuggestion = z.infer<typeof jobSuggestionSchema>
 export type SuggestResponse = z.infer<typeof suggestResponseSchema>
 export type Profile = z.infer<typeof profileSchema>

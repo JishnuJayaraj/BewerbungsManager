@@ -12,19 +12,27 @@ import {
   deleteSearchPreset,
   deleteSkill,
   getHealth,
+  getApplication,
+  getApplicationBrief,
+  getFit,
   getJobDetail,
   getProfile,
   getSettings,
   getSuggestions,
+  listApplications,
   listSearchPresets,
   parseCv,
+  runFit,
   saveApplication,
+  updateApplicationBrief,
   updateExperience,
   updateProfile,
   updateProject,
+  updateRequirementOverride,
   updateSkill,
 } from './client'
 import type {
+  ApplicationBriefRequest,
   BasicSearchRequest,
   SearchBody,
   SearchPresetCreate,
@@ -36,12 +44,17 @@ import type {
   ProjectUpdate,
   SkillInput,
   SkillUpdate,
+  RequirementStatus,
 } from './schemas'
 
 export const queryKeys = {
   health: ['health'] as const,
   settings: ['settings'] as const,
   profile: ['profile'] as const,
+  applications: ['applications'] as const,
+  application: (id: string) => ['applications', id] as const,
+  brief: (id: string) => ['applications', id, 'brief'] as const,
+  fit: (id: string) => ['applications', id, 'fit'] as const,
   presets: ['search', 'presets'] as const,
   autocomplete: (phrase: string) => ['search', 'autocomplete', phrase] as const,
   jobDetail: (uuid: string) => ['jobs', uuid] as const,
@@ -126,14 +139,81 @@ export function useDeleteSearchPresetMutation() {
 }
 
 export function useSaveApplicationMutation() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (jobUuid: string) => saveApplication(jobUuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.applications })
+    },
   })
 }
 
 export function useSuggestionsMutation() {
   return useMutation({
     mutationFn: getSuggestions,
+  })
+}
+
+export function useApplicationsQuery() {
+  return useQuery({
+    queryKey: queryKeys.applications,
+    queryFn: listApplications,
+  })
+}
+
+export function useApplicationQuery(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.application(id ?? ''),
+    queryFn: () => getApplication(id ?? ''),
+    enabled: Boolean(id),
+  })
+}
+
+export function useApplicationBriefQuery(applicationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.brief(applicationId ?? ''),
+    queryFn: () => getApplicationBrief(applicationId ?? ''),
+    enabled: Boolean(applicationId),
+  })
+}
+
+export function useUpdateApplicationBriefMutation(applicationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: ApplicationBriefRequest) => updateApplicationBrief(applicationId, input),
+    onSuccess: (brief) => {
+      queryClient.setQueryData(queryKeys.brief(applicationId), brief)
+    },
+  })
+}
+
+export function useFitQuery(applicationId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.fit(applicationId ?? ''),
+    queryFn: () => getFit(applicationId ?? ''),
+    enabled: Boolean(applicationId),
+    retry: false,
+  })
+}
+
+export function useRunFitMutation(applicationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => runFit(applicationId),
+    onSuccess: (fit) => {
+      queryClient.setQueryData(queryKeys.fit(applicationId), fit)
+    },
+  })
+}
+
+export function useUpdateRequirementOverrideMutation(applicationId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ requirementId, userOverride }: { requirementId: string; userOverride: RequirementStatus | null }) =>
+      updateRequirementOverride(applicationId, requirementId, userOverride),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.fit(applicationId) })
+    },
   })
 }
 

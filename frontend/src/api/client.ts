@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import {
   apiErrorSchema,
+  applicationBriefRequestSchema,
+  applicationBriefSchema,
+  applicationListSchema,
   applicationSaveSchema,
   applicationSchema,
   autocompleteSuggestionSchema,
@@ -25,8 +28,14 @@ import {
   skillInputSchema,
   skillSchema,
   skillUpdateSchema,
+  fitResponseSchema,
+  requirementCheckSchema,
+  requirementOverrideRequestSchema,
   type ApiErrorPayload,
   type Application,
+  type ApplicationBrief,
+  type ApplicationBriefRequest,
+  type ApplicationList,
   type AutocompleteSuggestion,
   type BasicSearchRequest,
   type Experience,
@@ -48,6 +57,9 @@ import {
   type Skill,
   type SkillInput,
   type SkillUpdate,
+  type FitResponse,
+  type RequirementCheck,
+  type RequirementStatus,
 } from './schemas'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
@@ -185,6 +197,52 @@ export function saveApplication(jobUuid: string): Promise<Application> {
     method: 'POST',
     body: applicationSaveSchema.parse({ job_uuid: jobUuid }),
     schema: applicationSchema,
+  })
+}
+
+export function listApplications(): Promise<ApplicationList> {
+  return apiRequest('/api/applications', { schema: applicationListSchema })
+}
+
+export function getApplication(id: string): Promise<Application> {
+  return apiRequest(`/api/applications/${id}`, { schema: applicationSchema })
+}
+
+export function getApplicationBrief(applicationId: string): Promise<ApplicationBrief> {
+  return apiRequest(`/api/applications/${applicationId}/brief`, { schema: applicationBriefSchema })
+}
+
+export function updateApplicationBrief(
+  applicationId: string,
+  input: ApplicationBriefRequest,
+): Promise<ApplicationBrief> {
+  return apiRequest(`/api/applications/${applicationId}/brief`, {
+    method: 'PUT',
+    body: applicationBriefRequestSchema.parse(input),
+    schema: applicationBriefSchema,
+  })
+}
+
+export function getFit(applicationId: string): Promise<FitResponse> {
+  return apiRequest(`/api/applications/${applicationId}/fit`, { schema: fitResponseSchema })
+}
+
+export function runFit(applicationId: string): Promise<FitResponse> {
+  return apiRequest(`/api/applications/${applicationId}/fit`, {
+    method: 'POST',
+    schema: fitResponseSchema,
+  })
+}
+
+export function updateRequirementOverride(
+  applicationId: string,
+  requirementId: string,
+  userOverride: RequirementStatus | null,
+): Promise<RequirementCheck> {
+  return apiRequest(`/api/applications/${applicationId}/requirements/${requirementId}`, {
+    method: 'PATCH',
+    body: requirementOverrideRequestSchema.parse({ user_override: userOverride }),
+    schema: requirementCheckSchema,
   })
 }
 

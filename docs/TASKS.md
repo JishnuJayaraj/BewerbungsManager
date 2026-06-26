@@ -300,7 +300,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   application), presets save/replay.
 - **Handoff note:** _Done. Search page now supports basic search, advanced HR4U filters, aggregation facets, job detail, save-to-board with workspace link, suggestions replay, and saved preset create/replay/delete via typed API hooks._
 
-### [ ] Task 14 — Workspace UI: brief, fit, requirements, evidence (F)
+### [x] Task 14 — Workspace UI: brief, fit, requirements, evidence (F)
 - **Depends on:** 07, 08, 12, 13.
 - **Inputs:** SPEC §5.3, §5.4; UI.md §3 (Workspace); API.md (`/api/applications/{id}*`, `.../brief`,
   `.../fit`, `.../requirements/*`).
@@ -310,7 +310,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   Missing-info prompts before running fit/generation.
 - **Done when:** user can build a brief from suggestions, run fit, and see the checklist + cited
   evidence; missing-info prompts pre-fill the brief.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Workspace page now loads saved applications, shows job snapshots, edits guided briefs with evidence chips/company motivation/prompts, runs/loads fit, renders fit sections, requirement checklist with overrides, and matched evidence via typed API hooks._
 
 ### [ ] Task 15 — Artifacts UI: generation, citations, diff, regenerate, export (F)
 - **Depends on:** 09, 14.
@@ -369,7 +369,7 @@ Update as tasks complete (mirror the checkboxes above):
 - [x] 11 Frontend foundation
 - [x] 12 Profile editor UI
 - [x] 13 Search UI + save job
-- [ ] 14 Workspace UI
+- [x] 14 Workspace UI
 - [ ] 15 Artifacts UI
 - [ ] 16 Kanban + comms + checklist UI
 - [ ] 17 E2E, seed, docs
