@@ -33,19 +33,19 @@ and in Settings (SPEC §9).
 - **Application defaults** card (clearly explained): the starting tone / language / positioning
   angle for each job's generated materials (overridable per application in the Workspace).
 
-## 2. Search page  (Task 13 ← API: `/api/search*`, `/api/jobs/*`, `/api/suggestions`)
-- **Basic search bar** (default): phrase (with autocomplete), location + radius, job type,
-  employment type → `POST /api/search/basic`. No API jargon visible.
-- **Advanced filters** panel (collapsed): contract type, occupation area, date range, company
-  type, must/should/must_not, semantic → `POST /api/search/advanced`.
-- **Aggregation facets** sidebar (employment/job/contract types, occupation areas, top employers/
-  places) to refine.
-- **Results list** (deduped) → result → **Job detail** drawer/page (`GET /api/jobs/{uuid}`;
-  handle `410 job_expired`).
-- **Save to board** action (`POST /api/applications`) → opens/links the Workspace.
-- **Suggestions** strip: "Roles that fit you" from `POST /api/suggestions`; each suggestion runs
-  its prebuilt search.
-- **Saved presets**: list, replay, delete (`/api/search/presets`).
+## 2. Search / Discover page  (Task 13 ← API: `/api/search/basic`, `/api/jobs/*`, `/api/suggestions`)
+Recommendation-first discovery flow:
+- **"Roles that fit you"** loads on entry (`POST /api/suggestions`): cards with role, one-line
+  rationale, and key-skill chips. Clicking a card explores real openings for that role's phrase.
+  Suggestions are **phrase-based** (`{role, rationale, phrase, skills}`); the page runs
+  `POST /api/search/basic` with the phrase. LLM failure → friendly inline message (502, not a crash).
+- **Clean search bar**: phrase + location + radius, with a collapsible **Filters** (role type,
+  working time). Submits to `POST /api/search/basic`.
+- **Results** (left) + **posting detail** (right, `GET /api/jobs/{uuid}`; handle `410 job_expired`)
+  with a **Bookmark** action (`POST /api/applications`) that lands the job on the Board and links
+  to its Workspace.
+- (Advanced HR4U passthrough `/api/search/advanced` and saved presets remain available in the API
+  but are no longer surfaced in this streamlined UI.)
 
 ## 3. Application Workspace  (Task 14 ← API: `/api/applications/{id}*`, `.../brief`, `.../fit`)
 The centerpiece. Sections, top to bottom:
