@@ -10,6 +10,8 @@ From the repository root:
 cp .env.example .env
 cd backend
 uv sync
+uv run alembic upgrade head            # create/upgrade the schema
+uv run python -m app.seed              # optional demo profile + application (idempotent)
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -18,6 +20,22 @@ Then check:
 ```bash
 curl http://127.0.0.1:8000/health
 curl http://127.0.0.1:8000/api/settings
+```
+
+Run tests (incl. the end-to-end happy path):
+
+```bash
+uv run pytest
+```
+
+## Postgres
+
+The migration is database-agnostic. To run on Postgres:
+
+```bash
+uv sync --extra postgres
+export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/jobcraft"
+uv run alembic upgrade head
 ```
 
 ## Configuration

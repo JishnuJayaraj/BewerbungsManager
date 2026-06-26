@@ -20,12 +20,27 @@ Target user (v1): **tech / IT professionals**, including emigrants.
 | [docs/hr4u-findings.md](docs/hr4u-findings.md) | Live HR4U API validation results. |
 | [docs/docs.md](docs/docs.md) | Upstream HR4U Job Search API reference. |
 
+## Quick start (one command)
+
+```bash
+cp .env.example .env          # fill in HR4U_* and LLM_* keys
+./run.sh                      # migrate + seed demo data, then run backend + frontend
+```
+
+`./run.sh --no-seed` skips the demo data. Backend serves on `http://localhost:8000`, frontend on
+`http://localhost:5173` (Vite proxies `/api` and `/health` to the backend). Requires `uv` and `npm`.
+
+The demo seed creates one profile and one saved application (a Berlin "Senior Python Engineer")
+so the UI has content on first load — search → save → brief → fit → generate → board.
+
 ## Backend
 
 ```bash
 cp .env.example .env
 cd backend
 uv sync
+uv run alembic upgrade head            # create/upgrade the schema
+uv run python -m app.seed              # optional: demo profile + application (idempotent)
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -40,11 +55,26 @@ Settings are loaded from the repository-root `.env`. `LLM_DEFAULT_PROVIDER` defa
 for the EU/GDPR-friendly provider. Cloud providers such as Anthropic and OpenAI are opt-in, and
 backend endpoints never expose HR4U or LLM tokens.
 
-Run backend tests:
+Run backend tests (includes the end-to-end happy path `tests/test_e2e_happy_path.py`, which
+drives search → save → brief → fit → generate → board with the HR4U client and LLM services faked):
 
 ```bash
 cd backend
 uv run pytest
+```
+
+### Postgres (multi-user-ready)
+
+The schema is database-agnostic (portable SQLAlchemy types: `Uuid`, `JSON`, `Enum`, …), so the
+same migration applies on Postgres. Switch by pointing `DATABASE_URL` at Postgres and installing
+the driver:
+
+```bash
+cd backend
+uv sync --extra postgres                                   # installs psycopg
+export DATABASE_URL="postgresql+psycopg://user:pass@localhost:5432/jobcraft"
+uv run alembic upgrade head
+uv run python -m app.seed                                  # optional demo data
 ```
 
 ## Frontend
@@ -55,8 +85,8 @@ npm install
 npm run dev
 ```
 
-The Vite app serves at `http://127.0.0.1:5173/` by default. Placeholder routes are available at
-`/profile`, `/search`, and `/board`.
+The Vite app serves at `http://127.0.0.1:5173/` by default, with screens for Profile, Search,
+Workspace (brief/fit/artifacts/checklist/comms), Board (kanban), and Settings/privacy.
 
 Build the frontend:
 

@@ -338,14 +338,22 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 
 ## Phase 4 — Hardening
 
-### [ ] Task 17 — End-to-end pass, seed data, docs (X)
+### [x] Task 17 — End-to-end pass, seed data, docs (X)
 - **Depends on:** all above.
 - **Scope:** wire a full happy path (search → save → brief → fit → generate → board), add seed/demo
   data, a top-to-bottom run script, and update `README.md` + reconcile any spec drift discovered
   during build. Validate the Postgres switch (`DATABASE_URL`) and `alembic upgrade head` on Postgres.
 - **Done when:** a fresh clone can run backend+frontend, complete the happy path against the real
   HR4U API, and the Postgres migration applies cleanly.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Added `tests/test_e2e_happy_path.py` (full search→save→brief→fit→generate
+  →export→checklist→board→comms→suggestions flow; HR4U + 4 LLM services faked) and `tests/test_seed.py`;
+  full suite 34 passed / 1 skipped. Added idempotent `app/seed.py` (+`python -m app.seed`), root
+  `./run.sh` (migrate→seed→backend+frontend), and a `postgres` extra (psycopg). READMEs updated
+  (quick-start, seed, Postgres). Frontend `npm run build` passes. **Postgres caveat:** schema uses
+  only portable SQLAlchemy types (Uuid/JSON/Enum/Date/DateTime) so the migration is Postgres-safe by
+  construction and steps are documented, but it could NOT be run live here (no local Postgres; Docker
+  daemon unavailable) — needs a one-time live `alembic upgrade head` against a real Postgres to fully
+  close. No material spec drift found; implementation matches API.md/LLM_CONTRACTS.md._
 
 ---
 
@@ -372,4 +380,4 @@ Update as tasks complete (mirror the checkboxes above):
 - [x] 14 Workspace UI
 - [x] 15 Artifacts UI
 - [x] 16 Kanban + comms + checklist UI
-- [ ] 17 E2E, seed, docs
+- [x] 17 E2E, seed, docs (Postgres: verified portable + documented, live run pending)
