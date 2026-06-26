@@ -3,12 +3,13 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import Settings, get_settings
-from app.routers import applications, fit, jobs, profile, search
+from app.routers import applications, fit, generate, jobs, profile, search
 
 
 class SettingsResponse(BaseModel):
@@ -73,7 +74,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             content=error_payload(
                 "validation_error",
                 "Request validation failed",
-                {"errors": exc.errors()},
+                {"errors": jsonable_encoder(exc.errors())},
             ),
         )
 
@@ -98,6 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(profile.router)
     app.include_router(applications.router)
     app.include_router(fit.router)
+    app.include_router(generate.router)
 
     return app
 

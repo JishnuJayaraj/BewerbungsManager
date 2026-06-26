@@ -228,7 +228,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
 - **Not in this task:** cover letter / CV bullets / portal answers.
 - **Handoff note:** _Done. Fit service/router added with single-call fit schema, FIT_ANALYSIS artifact versioning, RequirementCheck replacement/override, profile-evidence filtering, and route tests._
 
-### [ ] Task 09 — Artifact generation (CV bullets, cover letter, portal answers) (B)
+### [x] Task 09 — Artifact generation (CV bullets, cover letter, portal answers) (B)
 - **Depends on:** 05, 07, 08.
 - **Inputs:** SPEC §5.3–5.4, §6 mode 4, §7 (regenerate-with-instruction); TECHNICAL §6, §7
   decisions 1 & 2; LLM_CONTRACTS.md §4 (exact `generate` output schemas, incl. the `format=anschreiben`
@@ -248,7 +248,7 @@ Legend: `[ ]` todo · `[x]` done · **B** backend · **F** frontend · **X** cro
   are flagged not hidden; regenerate produces a new version preserving history; export returns a
   Markdown and a PDF rendering of an artifact.
 - **Not in this task:** UI, checklist.
-- **Handoff note:** _…_
+- **Handoff note:** _Done. Generate service/router added for cover letters, CV bullet suggestions, and portal answers with citation verification, version history/current flags, artifact read/list, and Markdown/PDF export._
 
 ### [ ] Task 10 — Germany package checklist + job suggestions (B)
 - **Depends on:** 06, 07, 08.
