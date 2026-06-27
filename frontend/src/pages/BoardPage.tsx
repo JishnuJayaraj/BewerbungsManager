@@ -39,8 +39,10 @@ const activeColumns: ColumnDefinition[] = [
   { status: 'OFFER', label: 'Offer' },
 ]
 
-const archiveStatuses: ApplicationStatus[] = ['REJECTED', 'GHOSTED', 'CLOSED']
-const archiveLabels: Record<string, string> = { REJECTED: 'Rejected', GHOSTED: 'Ghosted', CLOSED: 'Closed' }
+/** Where a "Reopen" sends each archived/dormant state. */
+function reopenTarget(status: ApplicationStatus): ApplicationStatus {
+  return status === 'GHOSTED' ? 'APPLIED' : 'SAVED'
+}
 
 export function BoardPage() {
   const applications = useApplicationsQuery()
@@ -56,28 +58,35 @@ export function BoardPage() {
   )
 
   const threshold = ghostThreshold(profile.data)
-  const allItems = (applications.data?.items ?? []).map((application) => ({
-    ...application,
-    gone_quiet: isGoneQuiet(application, threshold),
-  }))
+  const allItems = useMemo(
+    () => (applications.data?.items ?? []).map((a) => ({ ...a, gone_quiet: isGoneQuiet(a, threshold) })),
+    [applications.data, threshold],
+  )
+
+  useEffect(() => {
+    setBoard(groupActive(allItems))
+  }, [allItems])
+
+  const byId = useMemo(() => Object.fromEntries(allItems.map((a) => [a.id, a])), [allItems])
+  const awaiting = useMemo(
+    () => allItems.filter((a) => a.status === 'GHOSTED').sort((a, b) => (b.days_since_applied ?? 0) - (a.days_since_applied ?? 0)),
+    [allItems],
+  )
+  const rejected = useMemo(() => allItems.filter((a) => a.status === 'REJECTED'), [allItems])
+  const closed = useMemo(() => allItems.filter((a) => a.status === 'CLOSED'), [allItems])
+
+  const counts = {
+    active: allItems.filter((a) => a.is_active).length,
+    applied: allItems.filter((a) => a.status === 'APPLIED').length,
+    interviewing: allItems.filter((a) => a.status === 'INTERVIEW').length,
+    offers: allItems.filter((a) => a.status === 'OFFER').length,
+    awaiting: awaiting.length,
+    archived: rejected.length + closed.length,
+  }
 
   function setThreshold(days: number) {
     updateProfile.mutate({ preferences: { ...(profile.data?.preferences ?? {}), ghost_threshold_days: days } })
   }
-
-  useEffect(() => {
-    setBoard(groupActive(allItems))
-  }, [applications.data])
-
-  const byId = useMemo(
-    () => Object.fromEntries(allItems.map((application) => [application.id, application])),
-    [allItems],
-  )
-  const archived = useMemo(
-    () => allItems.filter((application) => archiveStatuses.includes(application.status)),
-    [allItems],
-  )
-  const activeCount = allItems.filter((application) => application.is_active).length
 
   function handleDragEnd(event: DragEndEvent) {
     const activeId = String(event.active.id)
@@ -86,10 +95,9 @@ export function BoardPage() {
     const activeStatus = findStatus(board, activeId)
     const targetStatus = isActiveStatus(overId) ? overId : findStatus(board, overId)
     if (!activeStatus || !targetStatus || !byId[activeId]) return
-
     const next = moveCard(board, activeId, targetStatus, overId)
     setBoard(next)
-    const boardOrder = next[targetStatus].findIndex((application) => application.id === activeId)
+    const boardOrder = next[targetStatus].findIndex((a) => a.id === activeId)
     patch.mutate({ id: activeId, input: { status: targetStatus, board_order: boardOrder } })
   }
 
@@ -108,7 +116,6 @@ export function BoardPage() {
         <div>
           <p className="eyebrow">Board</p>
           <h2 id="board-title">Your pipeline</h2>
-          <p className="section-copy">{activeCount} active · {archived.length} archived. Drag to move, or open a card to work on it.</p>
         </div>
         <div className="board-controls">
           <label className="ghost-threshold">
@@ -131,6 +138,18 @@ export function BoardPage() {
 
       {applications.isError ? <ErrorNotice error={applications.error} /> : null}
       {patch.isError ? <ErrorNotice error={patch.error} /> : null}
+
+      {allItems.length > 0 ? (
+        <div className="funnel-bar">
+          <FunnelStat label="Active" value={counts.active} />
+          <FunnelStat label="Applied" value={counts.applied} />
+          <FunnelStat label="Interviewing" value={counts.interviewing} tone="good" />
+          <FunnelStat label="Offers" value={counts.offers} tone="good" />
+          <FunnelStat label="Awaiting reply" value={counts.awaiting} tone="warn" />
+          <FunnelStat label="Archived" value={counts.archived} muted />
+        </div>
+      ) : null}
+
       {!applications.isPending && allItems.length === 0 ? (
         <div className="notice board-empty">No applications yet. <Link to="/search">Discover roles and bookmark jobs →</Link></div>
       ) : null}
@@ -150,13 +169,30 @@ export function BoardPage() {
         </div>
       </DndContext>
 
-      <ArchiveSection
-        archived={archived}
+      <AwaitingSection
+        items={awaiting}
         onOpen={(id) => navigate(`/workspace/${id}`)}
-        onRemove={confirmRemove}
         onSetStatus={setStatus}
+        onRemove={confirmRemove}
+      />
+
+      <ArchiveSection
+        rejected={rejected}
+        closed={closed}
+        onOpen={(id) => navigate(`/workspace/${id}`)}
+        onSetStatus={setStatus}
+        onRemove={confirmRemove}
       />
     </section>
+  )
+}
+
+function FunnelStat({ label, value, tone, muted }: { label: string; value: number; tone?: 'good' | 'warn'; muted?: boolean }) {
+  return (
+    <div className={['funnel-stat', tone ? `funnel-${tone}` : '', muted ? 'funnel-muted' : ''].filter(Boolean).join(' ')}>
+      <span className="funnel-value">{value}</span>
+      <span className="funnel-label">{label}</span>
+    </div>
   )
 }
 
@@ -180,7 +216,7 @@ function ActiveColumn({
         <h3>{column.label}</h3>
         <span>{applications.length}</span>
       </div>
-      <SortableContext items={applications.map((application) => application.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={applications.map((a) => a.id)} strategy={verticalListSortingStrategy}>
         <div className="kanban-card-list">
           {applications.map((application) => (
             <ActiveCard
@@ -235,9 +271,9 @@ function ActiveCard({
             {application.status === 'SAVED' ? (
               <button type="button" onClick={() => act(() => onSetStatus(application, 'APPLIED'))}>✓ Mark applied</button>
             ) : null}
-            <button type="button" onClick={() => act(() => onSetStatus(application, 'REJECTED'))}>Move to Rejected</button>
-            <button type="button" onClick={() => act(() => onSetStatus(application, 'GHOSTED'))}>Move to Ghosted</button>
-            <button type="button" onClick={() => act(() => onSetStatus(application, 'CLOSED'))}>Move to Closed</button>
+            <button type="button" title="They said no" onClick={() => act(() => onSetStatus(application, 'REJECTED'))}>Rejected (they said no)</button>
+            <button type="button" title="No reply — recoverable" onClick={() => act(() => onSetStatus(application, 'GHOSTED'))}>Ghosted (no reply)</button>
+            <button type="button" title="You ended it" onClick={() => act(() => onSetStatus(application, 'CLOSED'))}>Closed (you ended it)</button>
             <button type="button" className="kebab-danger" onClick={() => act(onRemove)}>Remove</button>
           </div>
         ) : null}
@@ -263,47 +299,118 @@ function ActiveCard({
   )
 }
 
-function ArchiveSection({
-  archived,
+function AwaitingSection({
+  items,
   onOpen,
-  onRemove,
   onSetStatus,
+  onRemove,
 }: {
-  archived: Application[]
+  items: Application[]
   onOpen: (id: string) => void
-  onRemove: (application: Application) => void
   onSetStatus: (application: Application, status: ApplicationStatus) => void
+  onRemove: (application: Application) => void
 }) {
-  if (archived.length === 0) return null
-  const counts = archiveStatuses.map((status) => ({
-    status,
-    count: archived.filter((application) => application.status === status).length,
-  }))
+  if (items.length === 0) return null
+  return (
+    <details className="board-accordion awaiting-accordion" open>
+      <summary>
+        <span>😶 Awaiting reply</span>
+        <span className="awaiting-hint muted">{items.length} ghosted · may still come back</span>
+      </summary>
+      <div className="archive-list">
+        {items.map((application) => (
+          <div className="archive-row awaiting-row" key={application.id}>
+            <button type="button" className="archive-open" onClick={() => onOpen(application.id)}>
+              <strong>{application.job_title || 'Untitled role'}</strong>
+              <span>{application.company ?? 'Company not listed'}</span>
+            </button>
+            <span className="awaiting-age">{application.days_since_applied != null ? `${application.days_since_applied}d silent` : ''}</span>
+            <button type="button" className="link-toggle" onClick={() => onSetStatus(application, 'APPLIED')}>Reopen</button>
+            <button type="button" className="link-toggle" onClick={() => onSetStatus(application, 'CLOSED')}>Close</button>
+            <button type="button" className="archive-remove" aria-label="Delete" onClick={() => onRemove(application)}>×</button>
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function ArchiveSection({
+  rejected,
+  closed,
+  onOpen,
+  onSetStatus,
+  onRemove,
+}: {
+  rejected: Application[]
+  closed: Application[]
+  onOpen: (id: string) => void
+  onSetStatus: (application: Application, status: ApplicationStatus) => void
+  onRemove: (application: Application) => void
+}) {
+  const [query, setQuery] = useState('')
+  const total = rejected.length + closed.length
+  if (total === 0) return null
+
+  const match = (a: Application) => {
+    const q = query.trim().toLowerCase()
+    if (!q) return true
+    return `${a.job_title} ${a.company ?? ''}`.toLowerCase().includes(q)
+  }
+  const rej = rejected.filter(match)
+  const cls = closed.filter(match)
 
   return (
     <details className="board-accordion archive-accordion">
       <summary>
         <span>Archive</span>
         <span className="archive-counts">
-          {counts.filter((entry) => entry.count > 0).map((entry) => (
-            <span className="archive-count" key={entry.status}>{archiveLabels[entry.status]} {entry.count}</span>
-          ))}
+          {rejected.length > 0 ? <span className="archive-count">Rejected {rejected.length}</span> : null}
+          {closed.length > 0 ? <span className="archive-count">Closed {closed.length}</span> : null}
         </span>
       </summary>
+      <div className="archive-body">
+        {total > 6 ? (
+          <input className="archive-search" placeholder="Search archive…" value={query} onChange={(event) => setQuery(event.target.value)} />
+        ) : null}
+        <ArchiveGroup label="Rejected — they said no" items={rej} onOpen={onOpen} onSetStatus={onSetStatus} onRemove={onRemove} />
+        <ArchiveGroup label="Closed — you ended it" items={cls} onOpen={onOpen} onSetStatus={onSetStatus} onRemove={onRemove} />
+        {rej.length === 0 && cls.length === 0 ? <p className="muted" style={{ padding: '8px 10px' }}>No matches.</p> : null}
+      </div>
+    </details>
+  )
+}
+
+function ArchiveGroup({
+  label,
+  items,
+  onOpen,
+  onSetStatus,
+  onRemove,
+}: {
+  label: string
+  items: Application[]
+  onOpen: (id: string) => void
+  onSetStatus: (application: Application, status: ApplicationStatus) => void
+  onRemove: (application: Application) => void
+}) {
+  if (items.length === 0) return null
+  return (
+    <div className="archive-group">
+      <h4 className="archive-group-title">{label} <span>{items.length}</span></h4>
       <div className="archive-list">
-        {archived.map((application) => (
+        {items.map((application) => (
           <div className="archive-row" key={application.id}>
             <button type="button" className="archive-open" onClick={() => onOpen(application.id)}>
               <strong>{application.job_title || 'Untitled role'}</strong>
               <span>{application.company ?? 'Company not listed'}</span>
             </button>
-            <span className={`status-pill archive-pill-${application.status.toLowerCase()}`}>{archiveLabels[application.status]}</span>
-            <button type="button" className="link-toggle" onClick={() => onSetStatus(application, 'SAVED')}>Reopen</button>
+            <button type="button" className="link-toggle" onClick={() => onSetStatus(application, reopenTarget(application.status))}>Reopen</button>
             <button type="button" className="archive-remove" aria-label="Delete" onClick={() => onRemove(application)}>×</button>
           </div>
         ))}
       </div>
-    </details>
+    </div>
   )
 }
 
@@ -322,19 +429,24 @@ function emptyActiveBoard(): ActiveBoard {
 function groupActive(applications: Application[]): ActiveBoard {
   const board = emptyActiveBoard()
   for (const application of applications) {
-    if (application.status in board) {
-      board[application.status].push(application)
-    }
+    if (application.status in board) board[application.status].push(application)
   }
   for (const status of Object.keys(board)) {
-    board[status].sort((a, b) => a.board_order - b.board_order)
+    if (status === 'APPLIED') {
+      // surface the ones needing a follow-up: gone-quiet first, then oldest applied
+      board[status].sort((a, b) =>
+        Number(b.gone_quiet) - Number(a.gone_quiet) || (b.days_since_applied ?? 0) - (a.days_since_applied ?? 0),
+      )
+    } else {
+      board[status].sort((a, b) => a.board_order - b.board_order)
+    }
   }
   return board
 }
 
 function findStatus(board: ActiveBoard, id: string): ApplicationStatus | null {
   for (const status of Object.keys(board)) {
-    if (board[status].some((application) => application.id === id)) return status as ApplicationStatus
+    if (board[status].some((a) => a.id === id)) return status as ApplicationStatus
   }
   return null
 }
@@ -347,7 +459,7 @@ function moveCard(board: ActiveBoard, activeId: string, targetStatus: Applicatio
   const next = Object.fromEntries(Object.entries(board).map(([status, items]) => [status, [...items]])) as ActiveBoard
   let moved: Application | null = null
   for (const status of Object.keys(next)) {
-    const index = next[status].findIndex((application) => application.id === activeId)
+    const index = next[status].findIndex((a) => a.id === activeId)
     if (index !== -1) {
       moved = { ...next[status][index], status: targetStatus }
       next[status].splice(index, 1)
@@ -356,7 +468,7 @@ function moveCard(board: ActiveBoard, activeId: string, targetStatus: Applicatio
   }
   if (!moved) return board
   const targetList = next[targetStatus]
-  const overIndex = targetList.findIndex((application) => application.id === overId)
+  const overIndex = targetList.findIndex((a) => a.id === overId)
   if (overIndex === -1) targetList.push(moved)
   else targetList.splice(overIndex, 0, moved)
   return next

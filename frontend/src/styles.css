@@ -473,9 +473,101 @@ a {
   text-align: center;
 }
 
+/* Funnel summary bar */
+.funnel-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.funnel-stat {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.funnel-value {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.funnel-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.funnel-good .funnel-value { color: var(--accent-ink); }
+.funnel-warn .funnel-value { color: var(--clay); }
+.funnel-muted { background: var(--surface-2); box-shadow: none; }
+.funnel-muted .funnel-value { color: var(--ink-muted); }
+
 /* 4 active columns get real room now */
 .kanban-active {
   grid-template-columns: repeat(4, minmax(220px, 1fr));
+}
+
+/* Awaiting reply (ghosted) — dormant, not dead */
+.awaiting-accordion {
+  border-left: 4px solid var(--clay);
+}
+
+.awaiting-accordion > summary {
+  font-size: 1rem;
+}
+
+.awaiting-hint {
+  margin-left: auto;
+  margin-right: 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.awaiting-row .awaiting-age {
+  color: var(--clay);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Archive groups + search */
+.archive-body {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+}
+
+.archive-search {
+  max-width: 320px;
+}
+
+.archive-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 0 4px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.archive-group-title span {
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  padding: 1px 8px;
+  font-size: 0.72rem;
 }
 
 .kanban-empty {
@@ -636,6 +728,9 @@ a {
 .archive-list {
   display: grid;
   gap: 2px;
+}
+
+.awaiting-accordion .archive-list {
   padding: 8px;
 }
 
@@ -3153,6 +3248,10 @@ a {
 
   .kanban-active {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
+  .funnel-bar {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .archive-row {
