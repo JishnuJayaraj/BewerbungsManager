@@ -17,10 +17,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { type FormEvent } from 'react'
 import {
   ApiError,
   useApplicationsQuery,
   useDeleteApplicationMutation,
+  useImportApplicationMutation,
   usePatchApplicationMutation,
   useProfileQuery,
   useUpdateProfileMutation,
@@ -52,6 +54,7 @@ export function BoardPage() {
   const updateProfile = useUpdateProfileMutation()
   const navigate = useNavigate()
   const [board, setBoard] = useState<ActiveBoard>(emptyActiveBoard())
+  const [importOpen, setImportOpen] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -132,7 +135,8 @@ export function BoardPage() {
             />
             days
           </label>
-          <Link className="cta-link cta-link-quiet" to="/search">+ Add from search</Link>
+          <Link className="cta-link cta-link-quiet" to="/search">Search</Link>
+          <button type="button" onClick={() => setImportOpen(true)}>+ Add a job</button>
         </div>
       </div>
 
@@ -183,7 +187,55 @@ export function BoardPage() {
         onSetStatus={setStatus}
         onRemove={confirmRemove}
       />
+
+      {importOpen ? (
+        <ImportJobModal onClose={() => setImportOpen(false)} onImported={(id) => navigate(`/workspace/${id}`)} />
+      ) : null}
     </section>
+  )
+}
+
+function ImportJobModal({ onClose, onImported }: { onClose: () => void; onImported: (id: string) => void }) {
+  const importJob = useImportApplicationMutation()
+  const [text, setText] = useState('')
+  const [url, setUrl] = useState('')
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (text.trim().length < 20) return
+    importJob.mutate({ text, url }, { onSuccess: (app) => onImported(app.id) })
+  }
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="import-title" onClick={onClose}>
+      <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            <p className="eyebrow">＋ Add a job</p>
+            <h2 id="import-title">Add a job from anywhere</h2>
+          </div>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <form className="modal-body" onSubmit={submit}>
+          <p className="muted">Found a role on LinkedIn, StepStone, Xing or a careers page? Paste the job description here — it becomes a tracked application with fit, tailoring and materials, just like a searched job.</p>
+          <label className="field">
+            Job description
+            <textarea value={text} onChange={(event) => setText(event.target.value)} rows={9} placeholder="Paste the full job posting text…" />
+          </label>
+          <label className="field">
+            Link (optional)
+            <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://linkedin.com/jobs/…" />
+          </label>
+          {importJob.isError ? <ErrorNotice error={importJob.error} /> : null}
+          <div className="row-actions">
+            <button type="submit" disabled={importJob.isPending || text.trim().length < 20}>
+              {importJob.isPending ? 'Reading…' : 'Add to board'}
+            </button>
+            <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
 

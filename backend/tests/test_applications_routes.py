@@ -207,3 +207,44 @@ def test_mark_applied_auto_arms_followup(tmp_path) -> None:
     applied = client.patch(f"/api/applications/{app_id}", json={"status": "APPLIED"}).json()
     assert applied["applied_at"] is not None
     assert applied["followup_date"] is not None  # auto-armed (+14d by default)
+
+
+def test_import_application_from_pasted_text(tmp_path, monkeypatch) -> None:
+    from app.routers.applications import get_job_import_service
+    from app.schemas.jobimport import JobImportInputs, JobParseResult, ContactParse
+
+    class FakeImport:
+        async def run(self, inputs: JobImportInputs) -> JobParseResult:
+            return JobParseResult(
+                title="Senior Data Analyst",
+                company="LinkedIn Found GmbH",
+                place="Berlin",
+                country="DE",
+                requirements=["SQL", "Power BI"],
+                tasks=["Build dashboards"],
+                fulltext="We are hiring a Senior Data Analyst.",
+                contact=ContactParse(name="Max Mustermann", email="max@found.de"),
+            )
+
+    database_url = f"sqlite:///{tmp_path / 'import.db'}"
+    engine = create_db_engine(Settings(DATABASE_URL=database_url))
+    SQLModel.metadata.create_all(engine)
+    app = create_app(Settings(DATABASE_URL=database_url, LLM_DEFAULT_PROVIDER="mistral"))
+
+    def override_session() -> Generator[Session, None, None]:
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_job_import_service] = lambda: FakeImport()
+    client = TestClient(app)
+
+    response = client.post("/api/applications/import", json={"text": "pasted JD", "url": "https://linkedin.com/jobs/123"})
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["job_title"] == "Senior Data Analyst"
+    assert body["company"] == "LinkedIn Found GmbH"
+    assert body["job_snapshot"]["text"]["requirements"] == ["SQL", "Power BI"]
+    assert body["job_snapshot"]["link"] == "https://linkedin.com/jobs/123"
+    assert body["contact"]["email"] == "max@found.de"

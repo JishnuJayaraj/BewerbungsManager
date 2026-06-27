@@ -32,6 +32,7 @@ import {
   getProfile,
   getSettings,
   getSuggestions,
+  importApplication,
   quickFit,
   listApplications,
   listArtifacts,
@@ -173,6 +174,16 @@ export function useSaveApplicationMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (jobUuid: string) => saveApplication(jobUuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.applications })
+    },
+  })
+}
+
+export function useImportApplicationMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ text, url }: { text: string; url?: string }) => importApplication(text, url),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.applications })
     },

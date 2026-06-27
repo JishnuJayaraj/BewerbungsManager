@@ -236,6 +236,14 @@ export function saveApplication(jobUuid: string): Promise<Application> {
   })
 }
 
+export function importApplication(text: string, url?: string): Promise<Application> {
+  return apiRequest('/api/applications/import', {
+    method: 'POST',
+    body: { text, url: url?.trim() || null },
+    schema: applicationSchema,
+  })
+}
+
 export function listApplications(): Promise<ApplicationList> {
   return apiRequest('/api/applications', { schema: applicationListSchema })
 }

@@ -30,6 +30,7 @@ from app.schemas.generate import (
     GeneratedArtifactListResponse,
     GeneratedArtifactResponse,
     PortalAnswerContent,
+    TailoredCvContent,
 )
 from app.services.citations import CitationClaim, CitationEvidence, VerifiedCitation, verify_citations
 from app.services.generate import GenerateResult, GenerateService
@@ -189,6 +190,9 @@ def _claims_for_content(kind: ArtifactKind, content: ArtifactContent) -> list[Ci
         case ArtifactKind.PORTAL_ANSWER:
             answer = PortalAnswerContent.model_validate(content)
             return answer.claims
+        case ArtifactKind.TAILORED_CV:
+            cv = TailoredCvContent.model_validate(content)
+            return cv.claims
         case _:
             return []
 
@@ -283,6 +287,32 @@ def _artifact_markdown(artifact: GeneratedArtifact) -> str:
         case ArtifactKind.PORTAL_ANSWER:
             content = PortalAnswerContent.model_validate(artifact.content)
             lines.extend([f"**Question:** {content.question}", "", content.answer, ""])
+        case ArtifactKind.TAILORED_CV:
+            cv = TailoredCvContent.model_validate(artifact.content)
+            lines = [f"# {cv.full_name}".rstrip(), ""]
+            if cv.headline:
+                lines.extend([f"_{cv.headline}_", ""])
+            if cv.contact:
+                lines.extend([cv.contact, ""])
+            if cv.summary:
+                lines.extend(["## Summary", cv.summary, ""])
+            if cv.experiences:
+                lines.append("## Experience")
+                for exp in cv.experiences:
+                    head = " — ".join(filter(None, [exp.title, exp.company]))
+                    lines.append(f"### {head}{f' ({exp.dates})' if exp.dates else ''}")
+                    lines.extend([f"- {bullet}" for bullet in exp.bullets])
+                    lines.append("")
+            if cv.skills:
+                lines.extend(["## Skills", ", ".join(cv.skills), ""])
+            if cv.education:
+                lines.append("## Education")
+                for edu in cv.education:
+                    head = " — ".join(filter(None, [edu.degree, edu.institution]))
+                    lines.append(f"- {head}{f' ({edu.dates})' if edu.dates else ''}")
+                lines.append("")
+            if cv.languages:
+                lines.extend(["## Languages", ", ".join(cv.languages), ""])
         case _:
             lines.extend(["```json", json.dumps(artifact.content, indent=2, ensure_ascii=False), "```", ""])
 

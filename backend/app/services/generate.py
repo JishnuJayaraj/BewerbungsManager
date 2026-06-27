@@ -11,10 +11,16 @@ from app.schemas.generate import (
     CvBulletSuggestionsContent,
     GenerateInputs,
     PortalAnswerContent,
+    TailoredCvContent,
 )
 from app.services.llm import LlmService
 
-ContentModel: TypeAlias = type[CoverLetterContent] | type[CvBulletSuggestionsContent] | type[PortalAnswerContent]
+ContentModel: TypeAlias = (
+    type[CoverLetterContent]
+    | type[CvBulletSuggestionsContent]
+    | type[PortalAnswerContent]
+    | type[TailoredCvContent]
+)
 
 
 @dataclass(frozen=True)
@@ -50,6 +56,8 @@ def _content_model(kind: ArtifactKind) -> ContentModel:
             return CvBulletSuggestionsContent
         case ArtifactKind.PORTAL_ANSWER:
             return PortalAnswerContent
+        case ArtifactKind.TAILORED_CV:
+            return TailoredCvContent
         case _:
             raise ValueError(f"Unsupported generation artifact kind: {kind}")
 
@@ -77,6 +85,16 @@ def _system_prompt(kind: ArtifactKind) -> str:
             )
         case ArtifactKind.PORTAL_ANSWER:
             return f"{common} Draft an answer to portal_question. Keep the answer specific and honest."
+        case ArtifactKind.TAILORED_CV:
+            return (
+                f"{common} Generate the full tailored CV CONTENT (text only — no layout, no photo) "
+                "for this job. Fields: full_name, headline, contact (one line: email · phone · "
+                "location if known), summary (3-4 sentences, impact-led), experiences (each: title, "
+                "company, dates, 3-5 strong quantified bullets), skills (most job-relevant first), "
+                "education (degree, institution, dates), languages. Reorder and emphasize to match "
+                "the job, but use ONLY facts from the profile. Put every factual candidate statement "
+                "in claims with an evidence_ref."
+            )
         case _:
             return common
 

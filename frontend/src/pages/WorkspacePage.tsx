@@ -18,6 +18,7 @@ import {
   coverLetterContentSchema,
   cvBulletSuggestionsContentSchema,
   portalAnswerContentSchema,
+  tailoredCvContentSchema,
   type Application,
   type ApplicationBrief,
   type ApplicationStatus,
@@ -73,6 +74,7 @@ const emptyBriefForm: BriefForm = {
 
 const artifactKinds: Array<{ kind: GeneratableArtifactKind; label: string }> = [
   { kind: 'COVER_LETTER', label: 'Cover letter' },
+  { kind: 'TAILORED_CV', label: 'Tailored CV' },
   { kind: 'CV_BULLET_SUGGESTIONS', label: 'CV bullets' },
   { kind: 'PORTAL_ANSWER', label: 'Portal answer' },
 ]
@@ -660,6 +662,46 @@ function ArtifactRenderer({ artifact }: { artifact: GeneratedArtifact }) {
         <h4>{parsed.data.question}</h4>
         <p className="artifact-meta">{parsed.data.language}</p>
         <div className="artifact-text">{parsed.data.answer}</div>
+      </article>
+    )
+  }
+
+  if (artifact.kind === 'TAILORED_CV') {
+    const parsed = tailoredCvContentSchema.safeParse(artifact.content)
+    if (!parsed.success) {
+      return <InvalidArtifact />
+    }
+    const cv = parsed.data
+    return (
+      <article className="artifact-rendered cv-rendered">
+        <p className="muted cv-hint">Content only — paste into your own template & add your photo.</p>
+        <header className="cv-header">
+          <h4>{cv.full_name}</h4>
+          {cv.headline ? <p className="cv-headline">{cv.headline}</p> : null}
+          {cv.contact ? <p className="artifact-meta">{cv.contact}</p> : null}
+        </header>
+        {cv.summary ? <div className="cv-block"><h5>Summary</h5><p>{cv.summary}</p></div> : null}
+        {cv.experiences.length > 0 ? (
+          <div className="cv-block">
+            <h5>Experience</h5>
+            {cv.experiences.map((exp, i) => (
+              <div className="cv-exp" key={i}>
+                <strong>{[exp.title, exp.company].filter(Boolean).join(' — ')}{exp.dates ? ` (${exp.dates})` : ''}</strong>
+                <ul className="entry-bullets">{exp.bullets.map((b, j) => <li key={j}>{b}</li>)}</ul>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {cv.skills.length > 0 ? <div className="cv-block"><h5>Skills</h5><p>{cv.skills.join(' · ')}</p></div> : null}
+        {cv.education.length > 0 ? (
+          <div className="cv-block">
+            <h5>Education</h5>
+            <ul className="entry-bullets">
+              {cv.education.map((edu, i) => <li key={i}>{[edu.degree, edu.institution].filter(Boolean).join(' — ')}{edu.dates ? ` (${edu.dates})` : ''}</li>)}
+            </ul>
+          </div>
+        ) : null}
+        {cv.languages.length > 0 ? <div className="cv-block"><h5>Languages</h5><p>{cv.languages.join(' · ')}</p></div> : null}
       </article>
     )
   }

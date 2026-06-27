@@ -252,6 +252,7 @@ export const requirementOverrideRequestSchema = z.object({
 export const artifactKindSchema = z.enum([
   'COVER_LETTER',
   'CV_BULLET_SUGGESTIONS',
+  'TAILORED_CV',
   'FIT_ANALYSIS',
   'PORTAL_ANSWER',
   'ANSWER_DRAFT',
@@ -260,6 +261,7 @@ export const artifactKindSchema = z.enum([
 export const generatableArtifactKindSchema = z.enum([
   'COVER_LETTER',
   'CV_BULLET_SUGGESTIONS',
+  'TAILORED_CV',
   'PORTAL_ANSWER',
 ])
 
@@ -319,6 +321,27 @@ export const portalAnswerContentSchema = z.object({
   question: z.string(),
   language: briefLanguageSchema,
   answer: z.string(),
+  claims: z.array(z.object({ claim: z.string(), evidence_ref: z.string().nullable().optional() })).default([]),
+})
+
+export const tailoredCvContentSchema = z.object({
+  full_name: z.string().default(''),
+  headline: z.string().nullable().optional(),
+  contact: z.string().nullable().optional(),
+  summary: z.string().default(''),
+  experiences: z.array(z.object({
+    title: z.string().default(''),
+    company: z.string().nullable().optional(),
+    dates: z.string().nullable().optional(),
+    bullets: z.array(z.string()).default([]),
+  })).default([]),
+  skills: z.array(z.string()).default([]),
+  education: z.array(z.object({
+    degree: z.string().default(''),
+    institution: z.string().nullable().optional(),
+    dates: z.string().nullable().optional(),
+  })).default([]),
+  languages: z.array(z.string()).default([]),
   claims: z.array(z.object({ claim: z.string(), evidence_ref: z.string().nullable().optional() })).default([]),
 })
 

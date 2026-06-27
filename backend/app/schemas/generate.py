@@ -13,6 +13,7 @@ ExportFormat = Literal["markdown", "pdf"]
 GENERATABLE_ARTIFACT_KINDS = {
     ArtifactKind.COVER_LETTER,
     ArtifactKind.CV_BULLET_SUGGESTIONS,
+    ArtifactKind.TAILORED_CV,
     ArtifactKind.PORTAL_ANSWER,
 }
 
@@ -46,7 +47,32 @@ class PortalAnswerContent(BaseModel):
     claims: list[CitationClaim] = Field(default_factory=list)
 
 
-ArtifactContent = CoverLetterContent | CvBulletSuggestionsContent | PortalAnswerContent
+class CvExperienceBlock(BaseModel):
+    title: str = ""
+    company: str | None = None
+    dates: str | None = None
+    bullets: list[str] = Field(default_factory=list)
+
+
+class CvEducationBlock(BaseModel):
+    degree: str = ""
+    institution: str | None = None
+    dates: str | None = None
+
+
+class TailoredCvContent(BaseModel):
+    full_name: str = ""
+    headline: str | None = None
+    contact: str | None = None
+    summary: str = ""
+    experiences: list[CvExperienceBlock] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
+    education: list[CvEducationBlock] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)
+    claims: list[CitationClaim] = Field(default_factory=list)
+
+
+ArtifactContent = CoverLetterContent | CvBulletSuggestionsContent | PortalAnswerContent | TailoredCvContent
 
 
 class GenerateInputs(BaseModel):
@@ -67,7 +93,7 @@ class GenerateRequest(BaseModel):
     @model_validator(mode="after")
     def validate_portal_question(self) -> GenerateRequest:
         if self.kind not in GENERATABLE_ARTIFACT_KINDS:
-            raise ValueError("kind must be COVER_LETTER, CV_BULLET_SUGGESTIONS, or PORTAL_ANSWER")
+            raise ValueError("kind must be COVER_LETTER, CV_BULLET_SUGGESTIONS, TAILORED_CV, or PORTAL_ANSWER")
         if self.kind == ArtifactKind.PORTAL_ANSWER and not self.portal_question:
             raise ValueError("portal_question is required when kind=PORTAL_ANSWER")
         return self

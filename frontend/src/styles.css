@@ -3577,3 +3577,24 @@ a {
   .link-row { grid-template-columns: 1fr; }
   .chip-add-lang { flex-wrap: wrap; }
 }
+
+/* ── Tailored CV render ──────────────────────────────── */
+.cv-rendered { gap: 16px; }
+.cv-hint { margin: 0; font-size: 0.8rem; }
+.cv-header h4 { margin: 0; font-size: 1.3rem; }
+.cv-headline { margin: 2px 0 0; color: var(--ink-soft); font-weight: 600; }
+.cv-block { display: grid; gap: 6px; }
+.cv-block h5 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 3px;
+}
+.cv-block p { margin: 0; line-height: 1.55; }
+.cv-exp { display: grid; gap: 4px; margin-bottom: 8px; }
+.cv-exp strong { font-family: var(--font-body); font-weight: 700; }

@@ -29,9 +29,15 @@ from app.schemas.applications import (
     CommsLogListResponse,
     CommsLogResponse,
 )
+from app.schemas.jobimport import JobImportInputs, JobImportRequest
 from app.services.hr4u import Hr4uClient, Hr4uClientError
+from app.services.jobimport import JobImportService
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
+
+
+def get_job_import_service() -> JobImportService:
+    return JobImportService()
 
 
 @router.post("", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
@@ -69,6 +75,61 @@ async def save_application(
         job_title=job.text.title or "",
         company=job.companyCleaned or job.company,
         contact=job.counterpart.model_dump(mode="json") if job.counterpart else {},
+    )
+    session.add(application)
+    session.commit()
+    session.refresh(application)
+    return _application_response(application)
+
+
+@router.post("/import", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
+async def import_application(
+    request: JobImportRequest,
+    session: Session = Depends(get_session),
+    service: JobImportService = Depends(get_job_import_service),
+) -> ApplicationResponse:
+    """Add a job from anywhere: paste a job description (LinkedIn/StepStone/careers page)."""
+    user = seed_local_user(session)
+    try:
+        parsed = await service.run(JobImportInputs(text=request.text, url=request.url))
+    except Exception as exc:  # noqa: BLE001 — clean 502 instead of a 500
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "upstream_llm_error", "message": "Could not read that job posting. Try pasting the full text."},
+        ) from exc
+
+    job_uuid = f"ext:{uuid.uuid4().hex}"
+    contact = {
+        "firstName": (parsed.contact.name or "").split(" ")[0] if parsed.contact.name else "",
+        "lastName": " ".join((parsed.contact.name or "").split(" ")[1:]) if parsed.contact.name else "",
+        "email": parsed.contact.email or "",
+        "phone": parsed.contact.phone or "",
+    }
+    snapshot: dict[str, Any] = {
+        "uuid": job_uuid,
+        "link": request.url or None,
+        "company": parsed.company,
+        "companyCleaned": parsed.company,
+        "source": "imported",
+        "text": {
+            "title": parsed.title,
+            "fulltext": parsed.fulltext,
+            "tasks": parsed.tasks,
+            "requirements": parsed.requirements,
+            "benefits": parsed.benefits,
+        },
+        "addresses": [{"place": parsed.place, "country": parsed.country}] if (parsed.place or parsed.country) else [],
+        "classifications": {},
+        "counterpart": contact,
+    }
+
+    application = Application(
+        user_id=user.id,
+        job_uuid=job_uuid,
+        job_snapshot=snapshot,
+        job_title=parsed.title or "Imported role",
+        company=parsed.company,
+        contact=contact,
     )
     session.add(application)
     session.commit()
