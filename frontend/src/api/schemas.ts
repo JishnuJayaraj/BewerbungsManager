@@ -400,6 +400,12 @@ export const suggestResponseSchema = z.object({
   suggestions: z.array(jobSuggestionSchema),
 })
 
+export const quickFitSchema = z.object({
+  verdict: z.enum(['STRONG', 'STRETCH', 'WEAK']),
+  headline: z.string().default(''),
+  top_gaps: z.array(z.string()).default([]),
+})
+
 export const skillKindSchema = z.enum(['IT_SKILL', 'SOFT_SKILL', 'LANGUAGE', 'CERT'])
 export const profileEntrySourceSchema = z.enum(['CV', 'MANUAL'])
 
@@ -595,6 +601,7 @@ export type CommsKind = z.infer<typeof commsKindSchema>
 export type CommsDirection = z.infer<typeof commsDirectionSchema>
 export type JobSuggestion = z.infer<typeof jobSuggestionSchema>
 export type SuggestResponse = z.infer<typeof suggestResponseSchema>
+export type QuickFit = z.infer<typeof quickFitSchema>
 export type Profile = z.infer<typeof profileSchema>
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
 export type Skill = z.infer<typeof skillSchema>

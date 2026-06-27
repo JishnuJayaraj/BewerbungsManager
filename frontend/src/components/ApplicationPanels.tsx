@@ -1,11 +1,14 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   ApiError,
+  useApplicationQuery,
   useChecklistQuery,
   useCommsQuery,
   useCreateCommsMutation,
   useDeleteCommsMutation,
+  usePatchApplicationMutation,
   useUpdateChecklistMutation,
+  type ApplicationStatus,
   type CommsDirection,
   type CommsKind,
   type PackageChecklist,
@@ -13,6 +16,21 @@ import {
   type PackageChecklistRequest,
   type WorkPermitStatus,
 } from '../api'
+
+type StatusNudge = { status: ApplicationStatus; label: string }
+
+const INTERVIEW_WORDS = ['interview', 'vorstellungsgespräch', 'gespräch', 'einladung', 'kennenlernen', 'meeting', 'call with']
+const REJECT_WORDS = ['rejection', 'rejected', 'unfortunately', 'absage', 'leider', 'not move forward', 'other candidates']
+const OFFER_WORDS = ['offer', 'angebot', 'vertrag', 'contract', 'we are pleased to offer']
+
+function detectStatusNudge(text: string, current: ApplicationStatus): StatusNudge | null {
+  const lower = text.toLowerCase()
+  const has = (words: string[]) => words.some((word) => lower.includes(word))
+  if (has(OFFER_WORDS) && current !== 'OFFER') return { status: 'OFFER', label: 'Move to Offer?' }
+  if (has(INTERVIEW_WORDS) && current !== 'INTERVIEW' && current !== 'OFFER') return { status: 'INTERVIEW', label: 'Move to Interviewing?' }
+  if (has(REJECT_WORDS) && current !== 'REJECTED') return { status: 'REJECTED', label: 'Move to Rejected?' }
+  return null
+}
 
 type ChecklistForm = {
   salary_expectation: string
@@ -218,12 +236,17 @@ export function PackageChecklistPanel({ applicationId, compact = false }: { appl
 
 export function CommsLogPanel({ applicationId, compact = false }: { applicationId: string; compact?: boolean }) {
   const comms = useCommsQuery(applicationId)
+  const application = useApplicationQuery(applicationId)
   const createComms = useCreateCommsMutation(applicationId)
   const deleteComms = useDeleteCommsMutation(applicationId)
+  const patch = usePatchApplicationMutation()
   const [form, setForm] = useState<CommsForm>(emptyCommsForm)
+  const [nudge, setNudge] = useState<StatusNudge | null>(null)
 
   function submitComms(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const text = `${form.subject} ${form.body}`
+    const current = application.data?.status ?? 'SAVED'
     createComms.mutate(
       {
         kind: form.kind,
@@ -231,8 +254,18 @@ export function CommsLogPanel({ applicationId, compact = false }: { applicationI
         subject: nullIfEmpty(form.subject),
         body: form.body.trim(),
       },
-      { onSuccess: () => setForm(emptyCommsForm) },
+      {
+        onSuccess: () => {
+          setNudge(detectStatusNudge(text, current))
+          setForm(emptyCommsForm)
+        },
+      },
     )
+  }
+
+  function acceptNudge() {
+    if (!nudge) return
+    patch.mutate({ id: applicationId, input: { status: nudge.status } }, { onSuccess: () => setNudge(null) })
   }
 
   const entries = useMemo(() => comms.data?.items ?? [], [comms.data])
@@ -276,6 +309,15 @@ export function CommsLogPanel({ applicationId, compact = false }: { applicationI
         </button>
       </form>
       {createComms.isError ? <InlineError error={createComms.error} /> : null}
+      {nudge ? (
+        <div className="comms-nudge">
+          <span>This looks like an update. {nudge.label}</span>
+          <div className="row-actions">
+            <button type="button" onClick={acceptNudge} disabled={patch.isPending}>Yes, move</button>
+            <button type="button" className="secondary-button" onClick={() => setNudge(null)}>Dismiss</button>
+          </div>
+        </div>
+      ) : null}
       {comms.isPending ? <p className="muted">Loading comms...</p> : null}
       {comms.isError ? <InlineError error={comms.error} /> : null}
       <div className="comms-timeline">

@@ -197,3 +197,13 @@ def test_funnel_signals_gone_quiet_and_active(tmp_path) -> None:
     assert card["status"] == "GHOSTED"
     assert card["is_active"] is False
     assert card["gone_quiet"] is False
+
+
+def test_mark_applied_auto_arms_followup(tmp_path) -> None:
+    client = make_client(tmp_path)
+    client.post("/api/applications", json={"job_uuid": "auto-followup"})
+    app_id = client.get("/api/applications").json()["items"][0]["id"]
+
+    applied = client.patch(f"/api/applications/{app_id}", json={"status": "APPLIED"}).json()
+    assert applied["applied_at"] is not None
+    assert applied["followup_date"] is not None  # auto-armed (+14d by default)

@@ -128,6 +128,7 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
       {application.isError ? <ErrorNotice error={application.error} /> : null}
 
       {application.data ? <JobHeader application={application.data} threshold={threshold} /> : null}
+      {application.data ? <NextStepBanner application={application.data} hasFit={Boolean(fit.data)} threshold={threshold} /> : null}
       {application.data ? <TrackingCard application={application.data} /> : null}
 
       <MatchSection
@@ -144,6 +145,60 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
         <summary><span>💬 Communication log</span></summary>
         <CommsLogPanel applicationId={applicationId} compact />
       </details>
+    </section>
+  )
+}
+
+function NextStepBanner({ application, hasFit, threshold }: { application: Application; hasFit: boolean; threshold: number }) {
+  const patch = usePatchApplicationMutation()
+  const quiet = isGoneQuiet(application, threshold)
+
+  let title = ''
+  let hint = ''
+  let action: { label: string; run: () => void } | null = null
+
+  if (application.status === 'SAVED') {
+    if (!hasFit) {
+      title = 'Check your fit first'
+      hint = 'Run the fit analysis below before sinking time into materials.'
+    } else {
+      title = 'Tailor your materials, then apply'
+      hint = 'Generate a cover letter / CV bullets below, apply, then mark it applied.'
+      action = { label: '✓ Mark applied', run: () => patch.mutate({ id: application.id, input: { status: 'APPLIED' } }) }
+    }
+  } else if (application.status === 'APPLIED') {
+    if (quiet) {
+      title = 'Gone quiet — follow up or let go'
+      hint = `No reply for ${application.days_since_applied} days. Send one nudge, or archive it.`
+      action = { label: 'Mark ghosted', run: () => patch.mutate({ id: application.id, input: { status: 'GHOSTED' } }) }
+    } else if (!application.followup_date) {
+      title = 'Set a follow-up reminder'
+      hint = 'A reminder keeps this from silently going cold.'
+    } else {
+      title = `Applied — following up ${application.followup_date}`
+      hint = 'Log replies in the communication log as they come in.'
+    }
+  } else if (application.status === 'INTERVIEW') {
+    title = 'Prep for the interview'
+    hint = 'Re-read the role, your fit gaps, and prepare answers + questions to ask.'
+  } else if (application.status === 'OFFER') {
+    title = 'Review the offer 🎉'
+    hint = 'Compare terms, timeline, and your other live threads before deciding.'
+  } else {
+    title = 'Archived'
+    hint = 'Reopen from the board if this comes back to life.'
+  }
+
+  return (
+    <section className="next-step-banner">
+      <div>
+        <span className="next-step-kicker">Next step</span>
+        <strong>{title}</strong>
+        <p className="muted">{hint}</p>
+      </div>
+      {action ? (
+        <button type="button" onClick={action.run} disabled={patch.isPending}>{action.label}</button>
+      ) : null}
     </section>
   )
 }

@@ -30,6 +30,7 @@ import {
   searchPresetCreateSchema,
   searchPresetListSchema,
   searchPresetSchema,
+  quickFitSchema,
   searchResponseSchema,
   settingsSchema,
   suggestResponseSchema,
@@ -69,6 +70,7 @@ import {
   type Health,
   type JobDetail,
   type JobSuggestion,
+  type QuickFit,
   type Profile,
   type ProfileUpdate,
   type Project,
@@ -382,6 +384,14 @@ export function getSuggestions(): Promise<{ suggestions: JobSuggestion[] }> {
   return apiRequest('/api/suggestions', {
     method: 'POST',
     schema: suggestResponseSchema,
+  })
+}
+
+export function quickFit(jobUuid: string): Promise<QuickFit> {
+  return apiRequest('/api/quickfit', {
+    method: 'POST',
+    body: { job_uuid: jobUuid },
+    schema: quickFitSchema,
   })
 }
 

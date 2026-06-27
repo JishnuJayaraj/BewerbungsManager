@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     llm_suggest_model: str | None = Field(default=None, alias="LLM_SUGGEST_MODEL")
     llm_fit_model: str | None = Field(default=None, alias="LLM_FIT_MODEL")
     llm_enrich_model: str | None = Field(default=None, alias="LLM_ENRICH_MODEL")
+    llm_quickfit_model: str | None = Field(default=None, alias="LLM_QUICKFIT_MODEL")
 
     anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
@@ -48,6 +49,8 @@ class Settings(BaseSettings):
 
     # Days an application can sit in "Applied" with no movement before it's flagged as gone quiet.
     ghost_threshold_days: int = Field(default=21, alias="GHOST_THRESHOLD_DAYS")
+    # Default follow-up reminder set automatically when an application is marked applied.
+    followup_default_days: int = Field(default=14, alias="FOLLOWUP_DEFAULT_DAYS")
 
 
 @lru_cache

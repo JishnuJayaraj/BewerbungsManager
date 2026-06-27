@@ -31,6 +31,7 @@ import {
   getProfile,
   getSettings,
   getSuggestions,
+  quickFit,
   listApplications,
   listArtifacts,
   listSearchPresets,
@@ -180,6 +181,12 @@ export function useSaveApplicationMutation() {
 export function useSuggestionsMutation() {
   return useMutation({
     mutationFn: getSuggestions,
+  })
+}
+
+export function useQuickFitMutation() {
+  return useMutation({
+    mutationFn: (jobUuid: string) => quickFit(jobUuid),
   })
 }
 

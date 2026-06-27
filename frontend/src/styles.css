@@ -1090,6 +1090,71 @@ a {
   white-space: pre-wrap;
 }
 
+/* ── Next-step banner ────────────────────────────────── */
+
+.next-step-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid var(--accent-tint-2);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--accent-tint), var(--surface));
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.next-step-kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.next-step-banner strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 3px 0 4px;
+}
+
+.next-step-banner p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.next-step-banner > button {
+  flex-shrink: 0;
+}
+
+/* ── Comms status nudge ──────────────────────────────── */
+
+.comms-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  border: 1px solid var(--accent-tint-2);
+  border-radius: var(--radius-sm);
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.comms-nudge .row-actions button {
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 0.84rem;
+}
+
 /* ── Workspace job header ────────────────────────────── */
 
 .job-header {
@@ -2956,6 +3021,67 @@ a {
   padding: 24px 0;
 }
 
+/* ── Quick fit gate ──────────────────────────────────── */
+
+.quickfit-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.quickfit-cta .muted {
+  font-size: 0.82rem;
+}
+
+.quickfit-result {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  background: var(--surface-2);
+}
+
+.verdict-strong { border-left-color: var(--good-fg); background: color-mix(in srgb, var(--good-bg) 45%, var(--surface)); }
+.verdict-stretch { border-left-color: var(--warn-fg); background: color-mix(in srgb, var(--warn-bg) 40%, var(--surface)); }
+.verdict-weak { border-left-color: var(--bad-fg); background: color-mix(in srgb, var(--bad-bg) 40%, var(--surface)); }
+
+.quickfit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quickfit-badge {
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+.verdict-strong .quickfit-badge { color: var(--good-fg); }
+.verdict-stretch .quickfit-badge { color: var(--warn-fg); }
+.verdict-weak .quickfit-badge { color: var(--bad-fg); }
+
+.quickfit-headline {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.quickfit-gaps {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
 /* ── Responsive ──────────────────────────────────────── */
 
 @media (max-width: 980px) {
@@ -3007,6 +3133,11 @@ a {
   .job-header,
   .tracking-grid {
     grid-template-columns: 1fr;
+  }
+
+  .next-step-banner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .job-contact {

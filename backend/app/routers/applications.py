@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -122,6 +122,10 @@ def patch_application(
         setattr(application, field, value)
     if request.status == ApplicationStatus.APPLIED and application.applied_at is None:
         application.applied_at = _now()
+    # Auto-arm the follow-up loop when an application becomes applied and none is set.
+    if request.status == ApplicationStatus.APPLIED and application.followup_date is None:
+        applied = application.applied_at or _now()
+        application.followup_date = (applied + timedelta(days=get_settings().followup_default_days)).date()
     application.updated_at = _now()
     session.add(application)
     session.commit()

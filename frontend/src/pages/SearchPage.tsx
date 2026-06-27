@@ -6,6 +6,7 @@ import {
   useCreateSearchPresetMutation,
   useDeleteSearchPresetMutation,
   useJobDetailQuery,
+  useQuickFitMutation,
   useSaveApplicationMutation,
   useSearchPresetsQuery,
   useSuggestionsQuery,
@@ -309,6 +310,7 @@ function JobDetailPanel({
         </button>
       </div>
       <p className="muted">{[company, place].filter(Boolean).join(' · ')}</p>
+      <QuickFitCheck jobUuid={summary.uuid} />
       {savedId ? (
         <div className="notice enrich-result">
           Bookmarked to your Board. <Link to={`/workspace/${savedId}`}>Open workspace →</Link>
@@ -324,6 +326,53 @@ function JobDetailPanel({
       <DetailList title="Benefits" items={detail?.text.benefits ?? []} />
       {detail?.text.fulltext ? <p className="job-fulltext">{detail.text.fulltext}</p> : null}
     </aside>
+  )
+}
+
+const verdictMeta: Record<string, { label: string; icon: string; cls: string }> = {
+  STRONG: { label: 'Strong fit', icon: '✓', cls: 'verdict-strong' },
+  STRETCH: { label: 'Stretch', icon: '~', cls: 'verdict-stretch' },
+  WEAK: { label: 'Weak fit', icon: '✗', cls: 'verdict-weak' },
+}
+
+function QuickFitCheck({ jobUuid }: { jobUuid: string }) {
+  const quickFit = useQuickFitMutation()
+  const result = quickFit.data
+  // reset when the selected job changes
+  if (quickFit.variables && quickFit.variables !== jobUuid && !quickFit.isPending) {
+    quickFit.reset()
+  }
+
+  if (!result) {
+    return (
+      <div className="quickfit-cta">
+        <button type="button" className="secondary-button" onClick={() => quickFit.mutate(jobUuid)} disabled={quickFit.isPending}>
+          {quickFit.isPending ? 'Checking fit…' : '⚡ Quick fit check'}
+        </button>
+        <span className="muted">See if it’s worth applying — before you tailor.</span>
+        {quickFit.isError ? <span className="muted">Couldn’t check fit right now.</span> : null}
+      </div>
+    )
+  }
+
+  const meta = verdictMeta[result.verdict] ?? verdictMeta.STRETCH
+  return (
+    <div className={`quickfit-result ${meta.cls}`}>
+      <div className="quickfit-head">
+        <span className="quickfit-badge">{meta.icon} {meta.label}</span>
+        <button type="button" className="link-toggle" onClick={() => quickFit.mutate(jobUuid)} disabled={quickFit.isPending}>
+          {quickFit.isPending ? '…' : 'Recheck'}
+        </button>
+      </div>
+      {result.headline ? <p className="quickfit-headline">{result.headline}</p> : null}
+      {result.top_gaps.length > 0 ? (
+        <ul className="quickfit-gaps">
+          {result.top_gaps.map((gap, index) => (
+            <li key={index}>{gap}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   )
 }
 
