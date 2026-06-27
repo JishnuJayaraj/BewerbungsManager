@@ -3598,3 +3598,5 @@ a {
 .cv-block p { margin: 0; line-height: 1.55; }
 .cv-exp { display: grid; gap: 4px; margin-bottom: 8px; }
 .cv-exp strong { font-family: var(--font-body); font-weight: 700; }
+
+.artifact-hint { margin: -4px 0 0; font-size: 0.84rem; }

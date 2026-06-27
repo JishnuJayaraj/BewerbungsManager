@@ -72,11 +72,10 @@ const emptyBriefForm: BriefForm = {
   free_emphasis: '',
 }
 
-const artifactKinds: Array<{ kind: GeneratableArtifactKind; label: string }> = [
-  { kind: 'COVER_LETTER', label: 'Cover letter' },
-  { kind: 'TAILORED_CV', label: 'Tailored CV' },
-  { kind: 'CV_BULLET_SUGGESTIONS', label: 'CV bullets' },
-  { kind: 'PORTAL_ANSWER', label: 'Portal answer' },
+const artifactKinds: Array<{ kind: GeneratableArtifactKind; label: string; hint: string }> = [
+  { kind: 'TAILORED_CV', label: 'CV', hint: 'A job-tailored CV — content only, paste into your own template & add your photo.' },
+  { kind: 'COVER_LETTER', label: 'Cover letter', hint: 'A tailored Anschreiben — generate it for roles that ask for one.' },
+  { kind: 'PORTAL_ANSWER', label: 'Application questions', hint: 'Answers to free-text questions an application portal asks (e.g. “Why us?”).' },
 ]
 
 export function WorkspacePage() {
@@ -469,7 +468,7 @@ function TailoringSettings({ applicationId, suggestedAngle }: { applicationId: s
 }
 
 function ArtifactsPanel({ applicationId, suggestedAngle }: { applicationId: string; suggestedAngle: string | null }) {
-  const [kind, setKind] = useState<GeneratableArtifactKind>('COVER_LETTER')
+  const [kind, setKind] = useState<GeneratableArtifactKind>('TAILORED_CV')
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null)
   const [instruction, setInstruction] = useState('')
   const [portalQuestion, setPortalQuestion] = useState('')
@@ -534,12 +533,12 @@ function ArtifactsPanel({ applicationId, suggestedAngle }: { applicationId: stri
       <div className="card-heading">
         <div>
           <h3>Application materials</h3>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Generate tailored materials grounded in your profile.</p>
+          <p className="muted" style={{ margin: '4px 0 0' }}>The documents for this application — tailored to the job, grounded in your profile.</p>
         </div>
         {selectedArtifact?.has_unsupported ? <span className="unsupported-pill">Unsupported claims</span> : null}
       </div>
       <TailoringSettings applicationId={applicationId} suggestedAngle={suggestedAngle} />
-      <div className="artifact-tabs" role="tablist" aria-label="Artifact kinds">
+      <div className="artifact-tabs" role="tablist" aria-label="Material type">
         {artifactKinds.map((item) => (
           <button
             type="button"
@@ -554,11 +553,12 @@ function ArtifactsPanel({ applicationId, suggestedAngle }: { applicationId: stri
           </button>
         ))}
       </div>
+      <p className="muted artifact-hint">{artifactKinds.find((item) => item.kind === kind)?.hint}</p>
       <form className="artifact-generate-form" onSubmit={submitGenerate}>
         {kind === 'PORTAL_ANSWER' ? (
           <label>
-            Portal question
-            <textarea value={portalQuestion} rows={3} onChange={(event) => setPortalQuestion(event.target.value)} />
+            Question to answer
+            <textarea value={portalQuestion} rows={3} onChange={(event) => setPortalQuestion(event.target.value)} placeholder="Paste the portal's question, e.g. “Why do you want to work here?”" />
           </label>
         ) : null}
         <label>
