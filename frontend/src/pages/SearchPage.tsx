@@ -33,6 +33,11 @@ const contractTypeOptions = [
   { value: 'TEMPORARY', label: 'Temporary' },
 ]
 
+function dedupeJobs(items: JobSummary[]): JobSummary[] {
+  const seen = new Set<string>()
+  return items.filter((job) => (seen.has(job.uuid) ? false : (seen.add(job.uuid), true)))
+}
+
 function splitPlaces(value: string): string[] {
   return value
     .split(',')
@@ -61,9 +66,15 @@ export function SearchPage() {
   const [selectedJobUuid, setSelectedJobUuid] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
 
+  // Accumulated, paginated results
+  const [jobs, setJobs] = useState<JobSummary[]>([])
+  const [hits, setHits] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
+  const [activeReq, setActiveReq] = useState<BasicSearchRequest | null>(null)
+
   const detail = useJobDetailQuery(selectedJobUuid)
 
-  function buildRequest(searchPhrase: string, places: string[]): BasicSearchRequest {
+  function buildRequest(searchPhrase: string, places: string[], pageNum = 1): BasicSearchRequest {
     return {
       phrase: searchPhrase.trim() || undefined,
       places,
@@ -71,7 +82,7 @@ export function SearchPage() {
       employment_types: employmentTypes,
       contract_types: contractTypes,
       posted_within_days: postedWithin ? Number(postedWithin) : null,
-      page: 1,
+      page: pageNum,
       size: 20,
     }
   }
@@ -80,7 +91,29 @@ export function SearchPage() {
     setActiveRole(role)
     setSelectedJobUuid(null)
     setSavedId(null)
-    search.mutate(buildRequest(searchPhrase, places))
+    const request = buildRequest(searchPhrase, places, 1)
+    setActiveReq(request)
+    setPage(1)
+    search.mutate(request, {
+      onSuccess: (res) => {
+        setJobs(res.jobs)
+        setHits(res.hits)
+      },
+    })
+  }
+
+  function loadMore() {
+    if (!activeReq) return
+    const nextPage = page + 1
+    search.mutate(
+      { ...activeReq, page: nextPage },
+      {
+        onSuccess: (res) => {
+          setJobs((current) => dedupeJobs([...current, ...res.jobs]))
+          setPage(nextPage)
+        },
+      },
+    )
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -114,12 +147,13 @@ export function SearchPage() {
     save.mutate(selectedJobUuid, { onSuccess: (app) => setSavedId(app.id) })
   }
 
-  const result = search.data
+  const hasSearched = activeReq !== null
   const cards = suggestions.data?.suggestions ?? []
   const savedRoles = presets.data?.items ?? []
-  const selectedSummary = result?.jobs.find((job) => job.uuid === selectedJobUuid) ?? null
+  const selectedSummary = jobs.find((job) => job.uuid === selectedJobUuid) ?? null
   const loadingSuggestions = suggestions.isFetching
   const hasSavedRoles = savedRoles.length > 0
+  const canLoadMore = hits !== null && jobs.length < hits
 
   // Adapt once presets resolve: new users get discovery open; returning users start with
   // their saved roles and the most recent one's postings, discovery collapsed.
@@ -166,97 +200,7 @@ export function SearchPage() {
         </div>
       ) : null}
 
-      {/* ── Search bar ──────────────────────────────── */}
-      <form className="page-section search-bar" onSubmit={submit}>
-        <div className="search-bar-row">
-          <label className="search-bar-phrase">
-            Search roles or keywords
-            <input value={phrase} onChange={(event) => setPhrase(event.target.value)} placeholder="e.g. Data Analyst, Python…" />
-          </label>
-          <label className="search-bar-place">
-            City (comma-separate for nearby)
-            <input value={placesText} onChange={(event) => setPlacesText(event.target.value)} placeholder="Nürnberg, Fürth, Erlangen" />
-          </label>
-          <button type="submit" disabled={search.isPending || phrase.trim().length === 0}>
-            {search.isPending ? 'Searching…' : 'Search'}
-          </button>
-        </div>
-        <div className="search-bar-foot">
-          <button type="button" className="link-toggle" onClick={() => setFiltersOpen((open) => !open)}>
-            {filtersOpen ? 'Hide filters' : 'Filters'}
-          </button>
-          {phrase.trim().length > 0 ? (
-            <button
-              type="button"
-              className="link-toggle"
-              onClick={() => bookmarkRole(phrase.trim(), phrase.trim())}
-              disabled={savedRoleNames.has(phrase.trim().toLowerCase()) || createPreset.isPending}
-            >
-              ☆ Bookmark this role
-            </button>
-          ) : null}
-        </div>
-        {filtersOpen ? (
-          <div className="search-filters">
-            <div className="facet-group">
-              <h4>Posted within</h4>
-              <select className="posted-select" value={postedWithin} onChange={(event) => setPostedWithin(event.target.value)}>
-                <option value="">Any time</option>
-                <option value="1">Last 24 hours</option>
-                <option value="3">Last 3 days</option>
-                <option value="7">Last 7 days</option>
-                <option value="14">Last 14 days</option>
-                <option value="30">Last 30 days</option>
-              </select>
-            </div>
-            <ChipFilter label="Role type" options={jobTypeOptions} values={jobTypes} onChange={setJobTypes} />
-            <ChipFilter label="Working time" options={employmentTypeOptions} values={employmentTypes} onChange={setEmploymentTypes} />
-            <ChipFilter label="Contract" options={contractTypeOptions} values={contractTypes} onChange={setContractTypes} />
-          </div>
-        ) : null}
-      </form>
-
-      {/* ── Results ─────────────────────────────────── */}
-      {search.isError ? <div className="notice notice-error">Search failed. Please try again.</div> : null}
-
-      {result ? (
-        <div className="results-grid">
-          <div className="results-col">
-            <div className="results-header">
-              <h3>{activeRole ?? 'Results'}</h3>
-              <span>{result.hits.toLocaleString()} matches</span>
-            </div>
-            {result.jobs.length === 0 ? <p className="muted">No openings matched. Try a broader phrase, fewer cities, or remove filters.</p> : null}
-            <div className="job-list">
-              {result.jobs.map((job) => (
-                <button
-                  key={job.uuid}
-                  type="button"
-                  className={job.uuid === selectedJobUuid ? 'job-row job-row-active' : 'job-row'}
-                  onClick={() => { setSelectedJobUuid(job.uuid); setSavedId(null) }}
-                >
-                  <strong>{job.title ?? 'Untitled role'}</strong>
-                  <span>{[job.company, job.place].filter(Boolean).join(' · ') || '—'}</span>
-                  <small>{job.employment_types.join(' / ') || '—'}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-          <JobDetailPanel
-            summary={selectedSummary}
-            detail={detail.data}
-            loading={detail.isFetching}
-            onSave={saveJob}
-            saving={save.isPending}
-            savedId={savedId}
-            saveError={save.error}
-          />
-        </div>
-      ) : !hasSavedRoles && !discoverOpen ? (
-        <p className="muted discover-hint">Search above, or open “Roles that fit you” to discover.</p>
-      ) : null}
-
-      {/* ── Discover (secondary; collapsed for returning users) ── */}
+      {/* ── Discover (right below saved roles; collapsed for returning users) ── */}
       <div className="page-section rec-section">
         <button type="button" className="rec-toggle" onClick={() => setDiscoverOpen((open) => !open)} aria-expanded={discoverOpen}>
           <span>✨ Roles that fit you</span>
@@ -314,6 +258,103 @@ export function SearchPage() {
           </>
         ) : null}
       </div>
+
+      {/* ── Search bar ──────────────────────────────── */}
+      <form className="page-section search-bar" onSubmit={submit}>
+        <div className="search-bar-row">
+          <label className="search-bar-phrase">
+            Search roles or keywords
+            <input value={phrase} onChange={(event) => setPhrase(event.target.value)} placeholder="e.g. Data Analyst, Python…" />
+          </label>
+          <label className="search-bar-place">
+            City (comma-separate for nearby)
+            <input value={placesText} onChange={(event) => setPlacesText(event.target.value)} placeholder="Nürnberg, Fürth, Erlangen" />
+          </label>
+          <button type="submit" disabled={search.isPending || phrase.trim().length === 0}>
+            {search.isPending ? 'Searching…' : 'Search'}
+          </button>
+        </div>
+        <div className="search-bar-foot">
+          <button type="button" className="link-toggle" onClick={() => setFiltersOpen((open) => !open)}>
+            {filtersOpen ? 'Hide filters' : 'Filters'}
+          </button>
+          {phrase.trim().length > 0 ? (
+            <button
+              type="button"
+              className="link-toggle"
+              onClick={() => bookmarkRole(phrase.trim(), phrase.trim())}
+              disabled={savedRoleNames.has(phrase.trim().toLowerCase()) || createPreset.isPending}
+            >
+              ☆ Bookmark this role
+            </button>
+          ) : null}
+        </div>
+        {filtersOpen ? (
+          <div className="search-filters">
+            <div className="facet-group">
+              <h4>Posted within</h4>
+              <select className="posted-select" value={postedWithin} onChange={(event) => setPostedWithin(event.target.value)}>
+                <option value="">Any time</option>
+                <option value="1">Last 24 hours</option>
+                <option value="3">Last 3 days</option>
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+            </div>
+            <ChipFilter label="Role type" options={jobTypeOptions} values={jobTypes} onChange={setJobTypes} />
+            <ChipFilter label="Working time" options={employmentTypeOptions} values={employmentTypes} onChange={setEmploymentTypes} />
+            <ChipFilter label="Contract" options={contractTypeOptions} values={contractTypes} onChange={setContractTypes} />
+          </div>
+        ) : null}
+      </form>
+
+      {/* ── Results ─────────────────────────────────── */}
+      {search.isError ? <div className="notice notice-error">Search failed. Please try again.</div> : null}
+
+      {hasSearched ? (
+        <div className="results-grid">
+          <div className="results-col">
+            <div className="results-header">
+              <h3>{activeRole ?? 'Results'}</h3>
+              <span>
+                {hits !== null ? `${jobs.length} of ${hits.toLocaleString()}` : `${jobs.length}`} shown
+              </span>
+            </div>
+            {jobs.length === 0 && !search.isPending ? (
+              <p className="muted">No openings matched. Try a broader phrase, fewer cities, or remove filters.</p>
+            ) : null}
+            <div className="job-list">
+              {jobs.map((job) => (
+                <button
+                  key={job.uuid}
+                  type="button"
+                  className={job.uuid === selectedJobUuid ? 'job-row job-row-active' : 'job-row'}
+                  onClick={() => { setSelectedJobUuid(job.uuid); setSavedId(null) }}
+                >
+                  <strong>{job.title ?? 'Untitled role'}</strong>
+                  <span>{[job.company, job.place].filter(Boolean).join(' · ') || '—'}</span>
+                  <small>{job.employment_types.join(' / ') || '—'}</small>
+                </button>
+              ))}
+            </div>
+            {canLoadMore ? (
+              <button type="button" className="secondary-button load-more" onClick={loadMore} disabled={search.isPending}>
+                {search.isPending ? 'Loading…' : `Load more (${(hits! - jobs.length).toLocaleString()} more)`}
+              </button>
+            ) : null}
+          </div>
+          <JobDetailPanel
+            summary={selectedSummary}
+            detail={detail.data}
+            loading={detail.isFetching}
+            onSave={saveJob}
+            saving={save.isPending}
+            savedId={savedId}
+            saveError={save.error}
+          />
+        </div>
+      ) : null}
     </section>
   )
 }

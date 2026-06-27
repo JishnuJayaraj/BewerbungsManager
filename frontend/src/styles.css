@@ -3157,6 +3157,11 @@ a {
   gap: 12px;
 }
 
+.load-more {
+  justify-self: start;
+  margin-top: 4px;
+}
+
 .job-detail-empty {
   position: sticky;
   top: 92px;
