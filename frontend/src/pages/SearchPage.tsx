@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import {
   ApiError,
@@ -41,12 +41,14 @@ function splitPlaces(value: string): string[] {
 }
 
 export function SearchPage() {
-  const suggestions = useSuggestionsQuery()
   const search = useBasicSearchMutation()
   const save = useSaveApplicationMutation()
   const presets = useSearchPresetsQuery()
   const createPreset = useCreateSearchPresetMutation()
   const deletePreset = useDeleteSearchPresetMutation()
+
+  const [discoverOpen, setDiscoverOpen] = useState(false)
+  const suggestions = useSuggestionsQuery(discoverOpen)
 
   const [phrase, setPhrase] = useState('')
   const [placesText, setPlacesText] = useState('')
@@ -116,82 +118,46 @@ export function SearchPage() {
   const cards = suggestions.data?.suggestions ?? []
   const savedRoles = presets.data?.items ?? []
   const selectedSummary = result?.jobs.find((job) => job.uuid === selectedJobUuid) ?? null
-  const loadingSuggestions = suggestions.isPending || suggestions.isFetching
+  const loadingSuggestions = suggestions.isFetching
+  const hasSavedRoles = savedRoles.length > 0
+
+  // Adapt once presets resolve: new users get discovery open; returning users start with
+  // their saved roles and the most recent one's postings, discovery collapsed.
+  const initRef = useRef(false)
+  useEffect(() => {
+    if (initRef.current || presets.isPending) return
+    initRef.current = true
+    if (hasSavedRoles) {
+      const recent = savedRoles[0]
+      exploreSaved(recent.name, recent.query_json)
+    } else {
+      setDiscoverOpen(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presets.isPending])
 
   return (
     <section className="discover-layout" aria-labelledby="discover-title">
       <div className="section-heading">
         <p className="eyebrow">Discover</p>
-        <h2 id="discover-title">Find your next role</h2>
+        <h2 id="discover-title">{hasSavedRoles ? 'Your saved roles' : 'Find your next role'}</h2>
         <p className="section-copy">
-          Start from roles the assistant thinks fit you, explore the live market, and bookmark the
-          roles and jobs worth pursuing — they land on your Board.
+          {hasSavedRoles
+            ? 'Pick a saved role to see fresh postings, or search for something new. Bookmark the jobs worth pursuing — they land on your Board.'
+            : 'Let the assistant suggest roles that fit you, explore the live market, and bookmark the roles and jobs worth pursuing.'}
         </p>
       </div>
 
-      {/* ── Recommendations ─────────────────────────── */}
-      <div className="page-section rec-section">
-        <div className="card-heading">
-          <div>
-            <h3>Roles that fit you</h3>
-            <p className="muted" style={{ margin: '4px 0 0' }}>Generated from your profile. Click to explore, ☆ to bookmark.</p>
-          </div>
-          <button type="button" className="secondary-button" onClick={() => suggestions.refetch()} disabled={loadingSuggestions}>
-            {loadingSuggestions ? 'Thinking…' : 'Refresh'}
-          </button>
-        </div>
-
-        {loadingSuggestions && cards.length === 0 ? <p className="muted">Looking at your profile…</p> : null}
-        {suggestions.isError ? (
-          <div className="notice notice-error">Couldn't generate recommendations right now. Build your profile, then refresh.</div>
-        ) : null}
-        {!loadingSuggestions && cards.length === 0 && !suggestions.isError ? (
-          <p className="muted">No recommendations yet — build your profile first, then refresh.</p>
-        ) : null}
-
-        <div className="rec-grid">
-          {cards.map((card) => {
-            const bookmarked = savedRoleNames.has(card.role.toLowerCase())
-            return (
-              <div key={card.role} className={activeRole === card.role ? 'rec-card rec-card-active' : 'rec-card'}>
-                <button
-                  type="button"
-                  className="rec-bookmark"
-                  title={bookmarked ? 'Bookmarked' : 'Bookmark this role'}
-                  aria-label={bookmarked ? 'Bookmarked' : 'Bookmark this role'}
-                  onClick={() => bookmarkRole(card.role, card.phrase)}
-                  disabled={bookmarked || createPreset.isPending}
-                >
-                  {bookmarked ? '★' : '☆'}
-                </button>
-                <button type="button" className="rec-body" onClick={() => explore(card.role, card.phrase)}>
-                  <strong>{card.role}</strong>
-                  {card.rationale ? <span className="rec-why">{card.rationale}</span> : null}
-                  {card.skills.length > 0 ? (
-                    <span className="rec-skills">
-                      {card.skills.slice(0, 5).map((skill) => (
-                        <span className="rec-skill" key={skill}>{skill}</span>
-                      ))}
-                    </span>
-                  ) : null}
-                  <span className="rec-cta">Explore openings →</span>
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── Saved roles ─────────────────────────────── */}
-      {savedRoles.length > 0 ? (
+      {/* ── Saved roles (primary for returning users) ── */}
+      {hasSavedRoles ? (
         <div className="page-section saved-roles">
           <div className="card-heading">
             <h3>Saved roles</h3>
-            <span className="muted">{savedRoles.length} bookmarked</span>
+            <span className="muted">Click to see current postings</span>
           </div>
           <div className="chip-row">
             {savedRoles.map((preset) => (
-              <span className="saved-role-chip" key={preset.id}>
+              <span className={activeRole === preset.name ? 'saved-role-chip saved-role-chip-active' : 'saved-role-chip'} key={preset.id}>
                 <button type="button" onClick={() => exploreSaved(preset.name, preset.query_json)}>{preset.name}</button>
                 <button type="button" className="saved-role-remove" aria-label={`Remove ${preset.name}`} onClick={() => deletePreset.mutate(preset.id)}>×</button>
               </span>
@@ -286,9 +252,68 @@ export function SearchPage() {
             saveError={save.error}
           />
         </div>
-      ) : (
-        <p className="muted discover-hint">Pick a recommended role above, or search to see openings.</p>
-      )}
+      ) : !hasSavedRoles && !discoverOpen ? (
+        <p className="muted discover-hint">Search above, or open “Roles that fit you” to discover.</p>
+      ) : null}
+
+      {/* ── Discover (secondary; collapsed for returning users) ── */}
+      <div className="page-section rec-section">
+        <button type="button" className="rec-toggle" onClick={() => setDiscoverOpen((open) => !open)} aria-expanded={discoverOpen}>
+          <span>✨ Roles that fit you</span>
+          <span className="muted">{discoverOpen ? 'Hide' : 'Discover more'}</span>
+        </button>
+
+        {discoverOpen ? (
+          <>
+            <div className="rec-toolbar">
+              <p className="muted">Generated from your profile. Click to explore, ☆ to bookmark.</p>
+              <button type="button" className="secondary-button" onClick={() => suggestions.refetch()} disabled={loadingSuggestions}>
+                {loadingSuggestions ? 'Thinking…' : 'Refresh'}
+              </button>
+            </div>
+
+            {loadingSuggestions && cards.length === 0 ? <p className="muted">Looking at your profile…</p> : null}
+            {suggestions.isError ? (
+              <div className="notice notice-error">Couldn't generate recommendations right now. Build your profile, then refresh.</div>
+            ) : null}
+            {!loadingSuggestions && cards.length === 0 && !suggestions.isError ? (
+              <p className="muted">No recommendations yet — build your profile first, then refresh.</p>
+            ) : null}
+
+            <div className="rec-grid">
+              {cards.map((card) => {
+                const bookmarked = savedRoleNames.has(card.role.toLowerCase())
+                return (
+                  <div key={card.role} className={activeRole === card.role ? 'rec-card rec-card-active' : 'rec-card'}>
+                    <button
+                      type="button"
+                      className="rec-bookmark"
+                      title={bookmarked ? 'Bookmarked' : 'Bookmark this role'}
+                      aria-label={bookmarked ? 'Bookmarked' : 'Bookmark this role'}
+                      onClick={() => bookmarkRole(card.role, card.phrase)}
+                      disabled={bookmarked || createPreset.isPending}
+                    >
+                      {bookmarked ? '★' : '☆'}
+                    </button>
+                    <button type="button" className="rec-body" onClick={() => explore(card.role, card.phrase)}>
+                      <strong>{card.role}</strong>
+                      {card.rationale ? <span className="rec-why">{card.rationale}</span> : null}
+                      {card.skills.length > 0 ? (
+                        <span className="rec-skills">
+                          {card.skills.slice(0, 5).map((skill) => (
+                            <span className="rec-skill" key={skill}>{skill}</span>
+                          ))}
+                        </span>
+                      ) : null}
+                      <span className="rec-cta">Explore openings →</span>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        ) : null}
+      </div>
     </section>
   )
 }

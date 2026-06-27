@@ -190,12 +190,13 @@ export function useQuickFitMutation() {
   })
 }
 
-export function useSuggestionsQuery() {
+export function useSuggestionsQuery(enabled = true) {
   return useQuery({
     queryKey: ['suggestions'] as const,
     queryFn: getSuggestions,
     staleTime: 5 * 60 * 1000,
     retry: false,
+    enabled,
   })
 }
 
