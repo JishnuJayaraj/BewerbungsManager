@@ -86,14 +86,19 @@ def _system_prompt(kind: ArtifactKind) -> str:
         case ArtifactKind.PORTAL_ANSWER:
             return f"{common} Draft an answer to portal_question. Keep the answer specific and honest."
         case ArtifactKind.TAILORED_CV:
+            # Standalone prompt: the CV is the candidate's own profile reformatted, so it does NOT
+            # use the citation framing (which makes the model nest everything under "claims").
             return (
-                f"{common} Generate the full tailored CV CONTENT (text only — no layout, no photo) "
-                "for this job. Fields: full_name, headline, contact (one line: email · phone · "
-                "location if known), summary (3-4 sentences, impact-led), experiences (each: title, "
-                "company, dates, 3-5 strong quantified bullets), skills (most job-relevant first), "
-                "education (degree, institution, dates), languages. Reorder and emphasize to match "
-                "the job, but use ONLY facts from the profile. Put every factual candidate statement "
-                "in claims with an evidence_ref."
+                "Generate the full tailored CV CONTENT (text only — no layout, no photo) for this "
+                "job, using ONLY facts from the candidate profile. Reorder and emphasize to match "
+                "the job. Return ONLY a JSON object with EXACTLY these keys and types: "
+                '{"full_name": str, "headline": str, "contact": str (one line: email · phone · '
+                'location), "summary": str (3-4 sentences, impact-led), "experiences": [{"title": '
+                'str, "company": str, "dates": str, "bullets": [str]}], "skills": [str], '
+                '"education": [{"degree": str, "institution": str, "dates": str}], "languages": '
+                "[str]}. bullets must be plain strings (3-5 per role, quantified where the profile "
+                "supports it). Do NOT nest claims or any other keys. If instruction is present, "
+                "apply it. Do not invent facts."
             )
         case _:
             return common

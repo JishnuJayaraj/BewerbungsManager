@@ -3600,3 +3600,21 @@ a {
 .cv-exp strong { font-family: var(--font-body); font-weight: 700; }
 
 .artifact-hint { margin: -4px 0 0; font-size: 0.84rem; }
+
+/* Tailoring settings (simplified) */
+.tailor-lang { display: grid; gap: 6px; max-width: 200px; color: var(--ink-soft); font-size: 0.8rem; font-weight: 700; }
+.field-opt { font-weight: 400; color: var(--ink-muted); text-transform: none; letter-spacing: 0; }
+.angle-suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.angle-chip {
+  text-align: left;
+  border: 1px solid var(--accent-tint-2);
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent-ink);
+  padding: 5px 13px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+.angle-chip:hover { background: var(--accent-tint-2); transform: none; }
+.angle-hint { margin: 0; font-size: 0.82rem; }

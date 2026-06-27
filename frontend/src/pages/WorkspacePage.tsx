@@ -75,7 +75,6 @@ const emptyBriefForm: BriefForm = {
 const artifactKinds: Array<{ kind: GeneratableArtifactKind; label: string; hint: string }> = [
   { kind: 'TAILORED_CV', label: 'CV', hint: 'A job-tailored CV — content only, paste into your own template & add your photo.' },
   { kind: 'COVER_LETTER', label: 'Cover letter', hint: 'A tailored Anschreiben — generate it for roles that ask for one.' },
-  { kind: 'PORTAL_ANSWER', label: 'Application questions', hint: 'Answers to free-text questions an application portal asks (e.g. “Why us?”).' },
 ]
 
 export function WorkspacePage() {
@@ -429,37 +428,34 @@ function TailoringSettings({ applicationId, suggestedAngle }: { applicationId: s
   }
 
   return (
-    <details className="tailor-settings">
-      <summary><span>⚙ Tailoring settings</span><span className="muted tailor-hint">tone · language · angle</span></summary>
+    <details className="tailor-settings" open>
+      <summary><span>⚙ Tailor to this job</span><span className="muted tailor-hint">language · angle · why this company</span></summary>
       <form className="tailor-form" onSubmit={save}>
-        <div className="field-grid">
-          <label>
-            Tone
-            <input value={form.tone} onChange={(event) => setForm({ ...form, tone: event.target.value })} placeholder="direct, professional" />
-          </label>
-          <label>
-            Language
-            <select value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value as 'DE' | 'EN' })}>
-              <option value="DE">German</option>
-              <option value="EN">English</option>
-            </select>
-          </label>
-        </div>
-        <label>
-          <span className="tailor-label-row">
-            Positioning angle
-            {suggestedAngle ? (
-              <button type="button" className="link-toggle" onClick={() => setForm({ ...form, target_angle: suggestedAngle })}>Use suggested</button>
-            ) : null}
-          </span>
-          <input value={form.target_angle} onChange={(event) => setForm({ ...form, target_angle: event.target.value })} placeholder="e.g. data analyst with strong BI/dashboarding focus" />
+        <label className="tailor-lang">
+          Language
+          <select value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value as 'DE' | 'EN' })}>
+            <option value="DE">German</option>
+            <option value="EN">English</option>
+          </select>
         </label>
-        <label>
-          Why this company?
-          <textarea value={form.company_motivation} rows={2} onChange={(event) => setForm({ ...form, company_motivation: event.target.value })} />
+        <label className="field">
+          Your angle for this job
+          <input value={form.target_angle} onChange={(event) => setForm({ ...form, target_angle: event.target.value })} placeholder="How you want to come across — pick a suggestion or write your own" />
+        </label>
+        {suggestedAngle ? (
+          <div className="angle-suggestions">
+            <span className="muted">AI suggests:</span>
+            <button type="button" className="angle-chip" onClick={() => setForm({ ...form, target_angle: suggestedAngle })}>✦ {suggestedAngle}</button>
+          </div>
+        ) : (
+          <p className="muted angle-hint">Run “Analyze fit” above to get an AI-suggested angle.</p>
+        )}
+        <label className="field">
+          Why this company? <span className="field-opt">— your personal touch, woven into the cover letter</span>
+          <textarea value={form.company_motivation} rows={2} onChange={(event) => setForm({ ...form, company_motivation: event.target.value })} placeholder="e.g. their work on X, the team, the product…" />
         </label>
         <div className="row-actions">
-          <button type="submit" className="secondary-button" disabled={updateBrief.isPending}>{updateBrief.isPending ? 'Saving…' : 'Save settings'}</button>
+          <button type="submit" className="secondary-button" disabled={updateBrief.isPending}>{updateBrief.isPending ? 'Saving…' : 'Save'}</button>
         </div>
         {updateBrief.isError ? <ErrorNotice error={updateBrief.error} /> : null}
       </form>

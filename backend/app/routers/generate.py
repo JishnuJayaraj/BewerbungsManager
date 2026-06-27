@@ -57,7 +57,13 @@ async def generate_artifact(
     application = _get_application(session, user.id, application_id)
     previous = _current_artifact(session, application.id, request.kind)
     inputs = _generate_inputs(session, user.id, application, request, previous)
-    result = await service.run(request.kind, inputs)
+    try:
+        result = await service.run(request.kind, inputs)
+    except Exception as exc:  # noqa: BLE001 — clean 502 instead of a 500
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "upstream_llm_error", "message": "Could not generate this — please try again."},
+        ) from exc
     verification = verify_citations(_claims_for_content(request.kind, result.content), _citation_evidence(session, user.id, application))
 
     for artifact in session.exec(

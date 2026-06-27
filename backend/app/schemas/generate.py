@@ -4,12 +4,28 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models import ArtifactKind, BriefLanguage
 from app.services.citations import CitationClaim, VerifiedCitation
 
 ExportFormat = Literal["markdown", "pdf"]
+
+
+def _as_text(value: Any) -> str:
+    """LLMs sometimes return a body/answer as a list of paragraphs — join to a string."""
+    if isinstance(value, list):
+        return "\n\n".join(str(part).strip() for part in value if part)
+    return value if isinstance(value, str) else ("" if value is None else str(value))
+
+
+def _as_language(value: Any) -> Any:
+    text = str(value or "").strip().lower()
+    if text in {"de", "german", "deutsch"}:
+        return "DE"
+    if text in {"en", "english", "englisch"}:
+        return "EN"
+    return value
 GENERATABLE_ARTIFACT_KINDS = {
     ArtifactKind.COVER_LETTER,
     ArtifactKind.CV_BULLET_SUGGESTIONS,
@@ -19,11 +35,26 @@ GENERATABLE_ARTIFACT_KINDS = {
 
 
 class CoverLetterContent(BaseModel):
-    language: BriefLanguage
-    format: Literal["anschreiben", "plain"]
+    language: BriefLanguage = BriefLanguage.EN
+    format: Literal["anschreiben", "plain"] = "plain"
     subject: str | None = None
-    body: str
+    body: str = ""
     claims: list[CitationClaim] = Field(default_factory=list)
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def _lang(cls, value: Any) -> Any:
+        return _as_language(value)
+
+    @field_validator("format", mode="before")
+    @classmethod
+    def _fmt(cls, value: Any) -> Any:
+        return value if value in ("anschreiben", "plain") else "plain"
+
+    @field_validator("body", mode="before")
+    @classmethod
+    def _body(cls, value: Any) -> Any:
+        return _as_text(value)
 
 
 class CvBulletSuggestion(BaseModel):
@@ -41,10 +72,20 @@ class CvBulletSuggestionsContent(BaseModel):
 
 
 class PortalAnswerContent(BaseModel):
-    question: str
-    language: BriefLanguage
-    answer: str
+    question: str = ""
+    language: BriefLanguage = BriefLanguage.EN
+    answer: str = ""
     claims: list[CitationClaim] = Field(default_factory=list)
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def _lang(cls, value: Any) -> Any:
+        return _as_language(value)
+
+    @field_validator("question", "answer", mode="before")
+    @classmethod
+    def _text(cls, value: Any) -> Any:
+        return _as_text(value)
 
 
 class CvExperienceBlock(BaseModel):
@@ -52,6 +93,15 @@ class CvExperienceBlock(BaseModel):
     company: str | None = None
     dates: str | None = None
     bullets: list[str] = Field(default_factory=list)
+
+    @field_validator("bullets", mode="before")
+    @classmethod
+    def _bullets(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(item) for item in value if item]
+        return []
 
 
 class CvEducationBlock(BaseModel):
@@ -70,6 +120,20 @@ class TailoredCvContent(BaseModel):
     education: list[CvEducationBlock] = Field(default_factory=list)
     languages: list[str] = Field(default_factory=list)
     claims: list[CitationClaim] = Field(default_factory=list)
+
+    @field_validator("full_name", "summary", mode="before")
+    @classmethod
+    def _text(cls, value: Any) -> Any:
+        return _as_text(value)
+
+    @field_validator("skills", "languages", mode="before")
+    @classmethod
+    def _strlist(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(item) for item in value if item]
+        return []
 
 
 ArtifactContent = CoverLetterContent | CvBulletSuggestionsContent | PortalAnswerContent | TailoredCvContent
