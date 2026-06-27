@@ -16,6 +16,7 @@ import {
   enrichApplyRequestSchema,
   enrichApplyResponseSchema,
   enrichQuestionsResultSchema,
+  improveResultSchema,
   experienceInputSchema,
   experienceSchema,
   experienceUpdateSchema,
@@ -55,6 +56,7 @@ import {
   type EnrichAnswer,
   type EnrichApplyResponse,
   type EnrichQuestionsResult,
+  type ImproveResult,
   type Application,
   type ApplicationBrief,
   type ApplicationBriefRequest,
@@ -427,6 +429,14 @@ export function enrichApply(answers: EnrichAnswer[]): Promise<EnrichApplyRespons
     method: 'POST',
     body: enrichApplyRequestSchema.parse({ answers }),
     schema: enrichApplyResponseSchema,
+  })
+}
+
+export function improveField(target: 'summary' | 'experience_bullets', experienceId?: string): Promise<ImproveResult> {
+  return apiRequest('/api/profile/improve', {
+    method: 'POST',
+    body: { target, experience_id: experienceId ?? null },
+    schema: improveResultSchema,
   })
 }
 

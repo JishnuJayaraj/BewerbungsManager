@@ -36,8 +36,10 @@ from app.schemas.profile import (
     format_profile_date,
     parse_profile_date,
 )
+from app.schemas.improve import ImproveInputs, ImproveRequest, ImproveResult
 from app.services.cv_parser import CvParser
 from app.services.enrich import EnrichService
+from app.services.improve import ImproveService
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -48,6 +50,10 @@ def get_cv_parser() -> CvParser:
 
 def get_enrich_service() -> EnrichService:
     return EnrichService()
+
+
+def get_improve_service() -> ImproveService:
+    return ImproveService()
 
 
 @router.post("/parse", response_model=ProfileResponse)
@@ -227,6 +233,40 @@ async def enrich_apply(
         changes=changes,
         added_skills=added_skills,
     )
+
+
+@router.post("/improve", response_model=ImproveResult)
+async def improve_field(
+    request: ImproveRequest,
+    session: Session = Depends(get_session),
+    service: ImproveService = Depends(get_improve_service),
+) -> ImproveResult:
+    user = seed_local_user(session)
+    profile = _get_or_create_profile(session, user.id)
+    session.commit()
+    profile_dict = _profile_response(session, profile).model_dump(mode="json")
+
+    if request.target == "summary":
+        current: dict[str, Any] = {"summary": profile.summary or ""}
+    else:
+        if request.experience_id is None:
+            raise HTTPException(status_code=422, detail={"code": "validation_error", "message": "experience_id is required"})
+        experience = _get_user_child(session, Experience, user.id, request.experience_id, "Experience")
+        current = {
+            "title": experience.title,
+            "company": experience.company,
+            "summary": experience.summary,
+            "bullets": experience.bullets,
+            "tech": experience.tech,
+        }
+
+    try:
+        return await service.run(ImproveInputs(target=request.target, profile=profile_dict, current=current))
+    except Exception as exc:  # noqa: BLE001 — clean 502 instead of a 500
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "upstream_llm_error", "message": "Could not generate an improvement."},
+        ) from exc
 
 
 @router.post("/skills", response_model=SkillResponse, status_code=status.HTTP_201_CREATED)

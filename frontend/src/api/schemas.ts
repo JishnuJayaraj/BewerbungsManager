@@ -561,6 +561,12 @@ export const enrichApplyResponseSchema = z.object({
   added_skills: z.array(z.string()).default([]),
 })
 
+export const improveResultSchema = z.object({
+  summary: z.string().nullable().default(null),
+  bullets: z.array(z.string()).default([]),
+  note: z.string().default(''),
+})
+
 export type ApiErrorPayload = z.infer<typeof apiErrorSchema>['error']
 export type Health = z.infer<typeof healthSchema>
 export type Settings = z.infer<typeof settingsSchema>
@@ -624,3 +630,4 @@ export type EnrichQuestion = z.infer<typeof enrichQuestionSchema>
 export type EnrichQuestionsResult = z.infer<typeof enrichQuestionsResultSchema>
 export type EnrichAnswer = z.infer<typeof enrichAnswerSchema>
 export type EnrichApplyResponse = z.infer<typeof enrichApplyResponseSchema>
+export type ImproveResult = z.infer<typeof improveResultSchema>

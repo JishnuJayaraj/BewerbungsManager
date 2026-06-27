@@ -19,6 +19,7 @@ import {
   enrichApply,
   enrichQuestions,
   exportArtifact,
+  improveField,
   generateArtifact,
   getArtifact,
   getHealth,
@@ -380,6 +381,13 @@ export function useParseCvMutation() {
 export function useEnrichQuestionsMutation() {
   return useMutation({
     mutationFn: enrichQuestions,
+  })
+}
+
+export function useImproveFieldMutation() {
+  return useMutation({
+    mutationFn: ({ target, experienceId }: { target: 'summary' | 'experience_bullets'; experienceId?: string }) =>
+      improveField(target, experienceId),
   })
 }
 

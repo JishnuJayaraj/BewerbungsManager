@@ -10,7 +10,7 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from app.config import Settings, get_settings
 
-LlmTask = Literal["cv_parse", "suggest", "fit", "generate", "enrich", "quickfit"]
+LlmTask = Literal["cv_parse", "suggest", "fit", "generate", "enrich", "quickfit", "improve"]
 Message = Mapping[str, str]
 T = TypeVar("T")
 
@@ -124,6 +124,8 @@ def _model_for_task(settings: Settings, task: LlmTask) -> str | None:
             return settings.llm_enrich_model or settings.llm_parse_model or settings.llm_default_model
         case "quickfit":
             return settings.llm_quickfit_model or settings.llm_parse_model or settings.llm_default_model
+        case "improve":
+            return settings.llm_improve_model or settings.llm_default_model
 
 
 def _api_key_for_provider(settings: Settings, provider: str) -> str | None:
