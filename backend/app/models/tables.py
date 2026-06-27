@@ -52,6 +52,7 @@ class ApplicationStatus(StrEnum):
     INTERVIEW = "INTERVIEW"
     OFFER = "OFFER"
     REJECTED = "REJECTED"
+    GHOSTED = "GHOSTED"
     CLOSED = "CLOSED"
 
 

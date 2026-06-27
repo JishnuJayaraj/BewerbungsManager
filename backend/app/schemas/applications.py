@@ -37,6 +37,10 @@ class ApplicationResponse(BaseModel):
     applied_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    # Derived funnel signals
+    days_since_applied: int | None = None
+    gone_quiet: bool = False
+    is_active: bool = True  # in the live pipeline (Saved/Applied/Interview/Offer)
 
 
 class ApplicationListResponse(BaseModel):

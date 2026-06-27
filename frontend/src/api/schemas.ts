@@ -135,7 +135,7 @@ export const jobDetailSchema = z
   })
   .passthrough()
 
-export const applicationStatusSchema = z.enum(['SAVED', 'APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'CLOSED'])
+export const applicationStatusSchema = z.enum(['SAVED', 'APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED', 'GHOSTED', 'CLOSED'])
 
 export const applicationSchema = z.object({
   id: z.string(),
@@ -152,6 +152,9 @@ export const applicationSchema = z.object({
   applied_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  days_since_applied: z.number().nullable().default(null),
+  gone_quiet: z.boolean().default(false),
+  is_active: z.boolean().default(true),
 })
 
 export const applicationListSchema = z.object({

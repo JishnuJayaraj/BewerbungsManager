@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlmodel import Session, func, select
 
+from app.config import get_settings
 from app.db import get_session, seed_local_user
 from app.models import (
     Application,
@@ -276,7 +277,29 @@ def _profile_brief_defaults(session: Session, user_id: uuid.UUID) -> dict[str, A
     return profile.brief_defaults if profile is not None else {}
 
 
+ACTIVE_STATUSES = {
+    ApplicationStatus.SAVED,
+    ApplicationStatus.APPLIED,
+    ApplicationStatus.INTERVIEW,
+    ApplicationStatus.OFFER,
+}
+
+
 def _application_response(application: Application) -> ApplicationResponse:
+    days_since_applied: int | None = None
+    if application.applied_at is not None:
+        applied = application.applied_at
+        if applied.tzinfo is None:
+            applied = applied.replace(tzinfo=timezone.utc)
+        days_since_applied = max(0, (_now() - applied).days)
+
+    threshold = get_settings().ghost_threshold_days
+    gone_quiet = (
+        application.status == ApplicationStatus.APPLIED
+        and days_since_applied is not None
+        and days_since_applied >= threshold
+    )
+
     return ApplicationResponse(
         id=application.id,
         job_uuid=application.job_uuid,
@@ -292,6 +315,9 @@ def _application_response(application: Application) -> ApplicationResponse:
         applied_at=application.applied_at,
         created_at=application.created_at,
         updated_at=application.updated_at,
+        days_since_applied=days_since_applied,
+        gone_quiet=gone_quiet,
+        is_active=application.status in ACTIVE_STATUSES,
     )
 
 

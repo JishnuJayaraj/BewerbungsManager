@@ -31,6 +31,7 @@ const stageOptions: Array<{ value: ApplicationStatus; label: string }> = [
   { value: 'INTERVIEW', label: 'Interview' },
   { value: 'OFFER', label: 'Offer' },
   { value: 'REJECTED', label: 'Rejected' },
+  { value: 'GHOSTED', label: 'Ghosted' },
   { value: 'CLOSED', label: 'Closed' },
 ]
 
