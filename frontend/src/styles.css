@@ -489,6 +489,101 @@ a {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--clay) 25%, transparent), var(--shadow-sm);
 }
 
+.board-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ghost-threshold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.ghost-threshold input {
+  width: 64px;
+  min-height: 34px;
+  text-align: center;
+}
+
+.kanban-card-menu {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
+.kanban-kebab {
+  min-height: 26px;
+  width: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 1.1rem;
+  line-height: 1;
+  box-shadow: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.kanban-card:hover .kanban-kebab {
+  opacity: 1;
+}
+
+.kanban-kebab:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+  transform: none;
+}
+
+.kebab-menu {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  z-index: 5;
+  display: grid;
+  min-width: 168px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  padding: 4px;
+  gap: 1px;
+}
+
+.kebab-menu button {
+  justify-content: flex-start;
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  padding: 6px 10px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.kebab-menu button:hover {
+  background: var(--surface-2);
+  transform: none;
+}
+
+.kebab-danger {
+  color: var(--bad-fg) !important;
+}
+
+.kebab-danger:hover {
+  background: var(--bad-bg) !important;
+}
+
 .quiet-nudge {
   margin-top: 8px;
   display: grid;
@@ -995,6 +1090,158 @@ a {
   white-space: pre-wrap;
 }
 
+/* ── Workspace job header ────────────────────────────── */
+
+.job-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+  background: linear-gradient(180deg, var(--surface), var(--surface-2));
+}
+
+.job-header-main h3 {
+  margin: 4px 0 0;
+  font-size: 1.5rem;
+}
+
+.job-header-sub {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.job-header-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+}
+
+.job-header-facts a {
+  font-weight: 600;
+}
+
+.job-contact {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+  border-left: 1px solid var(--line);
+  padding-left: 20px;
+  min-width: 180px;
+}
+
+.job-contact-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 2px;
+}
+
+.job-contact strong {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+}
+
+.job-contact a,
+.job-contact span {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+/* ── Tracking card ───────────────────────────────────── */
+
+.ws-section-title {
+  margin: 0 0 4px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.tracking-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, 150px) minmax(130px, 1fr) minmax(130px, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.tracking-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tracking-next {
+  grid-column: 1 / -2;
+}
+
+/* ── Tailoring settings (inside materials) ───────────── */
+
+.tailor-settings {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.tailor-settings > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tailor-settings > summary::-webkit-details-marker { display: none; }
+
+.tailor-settings > summary::after {
+  content: "⌄";
+  margin-left: auto;
+  color: var(--ink-muted);
+  transition: transform 0.18s ease;
+}
+
+.tailor-settings[open] > summary::after { transform: rotate(180deg); }
+
+.tailor-hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.tailor-form {
+  display: grid;
+  gap: 14px;
+  padding: 4px 16px 16px;
+}
+
+.tailor-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tailor-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 /* ── Match section (workspace fit) ───────────────────── */
 
 .match-section {
@@ -1096,51 +1343,6 @@ a {
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--bad-bg) 45%, var(--surface));
   padding: 16px 18px;
-}
-
-/* ── Tracking + tailoring ────────────────────────────── */
-
-.tracking-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 160px) 1fr;
-  gap: 16px;
-  align-items: end;
-}
-
-.tracking-action {
-  display: grid;
-  grid-template-columns: 1fr minmax(150px, 180px) auto;
-  gap: 12px;
-  align-items: end;
-}
-
-.tracking-action label,
-.tracking-card label {
-  display: grid;
-  gap: 6px;
-  color: var(--ink-soft);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.tailor-form {
-  display: grid;
-  gap: 14px;
-}
-
-.tailor-form label {
-  display: grid;
-  gap: 6px;
-  color: var(--ink-soft);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.tailor-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 /* ── Workspace ───────────────────────────────────────── */
@@ -2802,9 +3004,20 @@ a {
   .search-bar-row,
   .search-bar-row:has(.search-bar-radius),
   .match-cols,
-  .tracking-row,
-  .tracking-action {
+  .job-header,
+  .tracking-grid {
     grid-template-columns: 1fr;
+  }
+
+  .job-contact {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+
+  .tracking-next {
+    grid-column: 1;
   }
 
   .kanban-active {

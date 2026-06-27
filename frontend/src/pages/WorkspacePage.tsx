@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { CommsLogPanel } from '../components/ApplicationPanels'
+import { ghostThreshold, isGoneQuiet } from '../lib/funnel'
 import {
   ApiError,
   useApplicationBriefQuery,
@@ -11,6 +12,7 @@ import {
   useFitQuery,
   useGenerateArtifactMutation,
   usePatchApplicationMutation,
+  useProfileQuery,
   useRunFitMutation,
   useUpdateApplicationBriefMutation,
   coverLetterContentSchema,
@@ -34,6 +36,18 @@ const stageOptions: Array<{ value: ApplicationStatus; label: string }> = [
   { value: 'GHOSTED', label: 'Ghosted' },
   { value: 'CLOSED', label: 'Closed' },
 ]
+
+function stageLabel(status: ApplicationStatus): string {
+  return stageOptions.find((option) => option.value === status)?.label ?? status
+}
+
+function toDateInput(iso: string | null): string {
+  return iso ? iso.slice(0, 10) : ''
+}
+
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(iso))
+}
 
 type BriefForm = {
   target_angle: string
@@ -94,28 +108,18 @@ function WorkspacePicker() {
 
 function WorkspaceDetail({ applicationId }: { applicationId: string }) {
   const application = useApplicationQuery(applicationId)
-  const brief = useApplicationBriefQuery(applicationId)
+  const profile = useProfileQuery()
   const fit = useFitQuery(applicationId)
-  const updateBrief = useUpdateApplicationBriefMutation(applicationId)
   const runFit = useRunFitMutation(applicationId)
-  const [form, setForm] = useState<BriefForm>(emptyBriefForm)
-
-  useEffect(() => {
-    if (brief.data) setForm(briefToForm(brief.data))
-  }, [brief.data])
 
   const jobTitle = stringAt(application.data?.job_snapshot, ['text', 'title']) ?? application.data?.job_title ?? ''
-
-  function saveBrief(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    updateBrief.mutate(formToBriefRequest(form))
-  }
+  const threshold = ghostThreshold(profile.data)
 
   return (
     <section className="workspace-layout" aria-labelledby="workspace-title">
       <div className="section-heading workspace-heading">
         <div>
-          <p className="eyebrow">Workspace</p>
+          <p className="eyebrow">Application</p>
           <h2 id="workspace-title">{jobTitle || 'Application workspace'}</h2>
         </div>
         <Link className="cta-link cta-link-quiet" to="/board">← Board</Link>
@@ -123,7 +127,7 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
 
       {application.isError ? <ErrorNotice error={application.error} /> : null}
 
-      {application.data ? <JobSnapshot application={application.data} /> : null}
+      {application.data ? <JobHeader application={application.data} threshold={threshold} /> : null}
       {application.data ? <TrackingCard application={application.data} /> : null}
 
       <MatchSection
@@ -134,21 +138,53 @@ function WorkspaceDetail({ applicationId }: { applicationId: string }) {
         onRun={() => runFit.mutate()}
       />
 
-      <TailoringForm
-        form={form}
-        setForm={setForm}
-        saving={updateBrief.isPending}
-        error={updateBrief.error}
-        suggestedAngle={fit.data?.fit.suggested_angle ?? null}
-        onSubmit={saveBrief}
-      />
-
-      <ArtifactsPanel applicationId={applicationId} />
+      <ArtifactsPanel applicationId={applicationId} suggestedAngle={fit.data?.fit.suggested_angle ?? null} />
 
       <details className="board-accordion">
-        <summary><span>Communication log</span></summary>
+        <summary><span>💬 Communication log</span></summary>
         <CommsLogPanel applicationId={applicationId} compact />
       </details>
+    </section>
+  )
+}
+
+function JobHeader({ application, threshold }: { application: Application; threshold: number }) {
+  const snapshot = application.job_snapshot
+  const title = stringAt(snapshot, ['text', 'title']) ?? application.job_title
+  const company = application.company ?? stringAt(snapshot, ['companyCleaned']) ?? stringAt(snapshot, ['company'])
+  const place = stringAt(snapshot, ['addresses', 0, 'place'])
+  const country = stringAt(snapshot, ['addresses', 0, 'country'])
+  const link = stringAt(snapshot, ['link'])
+  const contactName = [stringAt(application.contact, ['firstName']), stringAt(application.contact, ['lastName'])].filter(Boolean).join(' ')
+  const contactEmail = stringAt(application.contact, ['email'])
+  const contactPhone = stringAt(application.contact, ['phone'])
+  const quiet = isGoneQuiet(application, threshold)
+
+  return (
+    <section className="workspace-card job-header">
+      <div className="job-header-main">
+        <p className="eyebrow">{stageLabel(application.status)}{quiet ? ' · gone quiet' : ''}</p>
+        <h3>{title}</h3>
+        <p className="job-header-sub">
+          {[company, [place, country].filter(Boolean).join(', ')].filter(Boolean).join(' · ') || 'Company / location not listed'}
+        </p>
+        <div className="job-header-facts">
+          {application.applied_at ? (
+            <span>Applied {formatDate(application.applied_at)}{application.days_since_applied != null ? ` · ${application.days_since_applied}d ago` : ''}</span>
+          ) : (
+            <span className="muted">Not applied yet</span>
+          )}
+          {link ? <a href={link} target="_blank" rel="noreferrer">Original posting →</a> : null}
+        </div>
+      </div>
+      {contactName || contactEmail || contactPhone ? (
+        <div className="job-contact">
+          <span className="job-contact-label">Contact</span>
+          {contactName ? <strong>{contactName}</strong> : null}
+          {contactEmail ? <a href={`mailto:${contactEmail}`}>{contactEmail}</a> : null}
+          {contactPhone ? <span>{contactPhone}</span> : null}
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -157,20 +193,30 @@ function TrackingCard({ application }: { application: Application }) {
   const patch = usePatchApplicationMutation()
   const [nextAction, setNextAction] = useState(application.next_action ?? '')
   const [followup, setFollowup] = useState(application.followup_date ?? '')
+  const [appliedDate, setAppliedDate] = useState(toDateInput(application.applied_at))
 
   useEffect(() => {
     setNextAction(application.next_action ?? '')
     setFollowup(application.followup_date ?? '')
-  }, [application.id, application.next_action, application.followup_date])
+    setAppliedDate(toDateInput(application.applied_at))
+  }, [application.id, application.next_action, application.followup_date, application.applied_at])
 
-  function saveAction(event: FormEvent<HTMLFormElement>) {
+  function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    patch.mutate({ id: application.id, input: { next_action: nullIfEmpty(nextAction), followup_date: nullIfEmpty(followup) } })
+    patch.mutate({
+      id: application.id,
+      input: {
+        next_action: nullIfEmpty(nextAction),
+        followup_date: nullIfEmpty(followup),
+        applied_at: appliedDate ? `${appliedDate}T00:00:00Z` : null,
+      },
+    })
   }
 
   return (
     <section className="workspace-card tracking-card">
-      <div className="tracking-row">
+      <h4 className="ws-section-title">Track this application</h4>
+      <form className="tracking-grid" onSubmit={save}>
         <label className="stage-select">
           Stage
           <select
@@ -182,18 +228,20 @@ function TrackingCard({ application }: { application: Application }) {
             ))}
           </select>
         </label>
-        <form className="tracking-action" onSubmit={saveAction}>
-          <label>
-            Next step
-            <input value={nextAction} onChange={(event) => setNextAction(event.target.value)} placeholder="e.g. tailor cover letter and apply" />
-          </label>
-          <label className="tracking-date">
-            Follow-up
-            <input type="date" value={followup} onChange={(event) => setFollowup(event.target.value)} />
-          </label>
-          <button type="submit" disabled={patch.isPending}>{patch.isPending ? 'Saving…' : 'Save'}</button>
-        </form>
-      </div>
+        <label>
+          Applied date
+          <input type="date" value={appliedDate} onChange={(event) => setAppliedDate(event.target.value)} />
+        </label>
+        <label>
+          Follow-up date
+          <input type="date" value={followup} onChange={(event) => setFollowup(event.target.value)} />
+        </label>
+        <label className="tracking-next">
+          Next step
+          <input value={nextAction} onChange={(event) => setNextAction(event.target.value)} placeholder="e.g. tailor cover letter and apply" />
+        </label>
+        <button type="submit" disabled={patch.isPending}>{patch.isPending ? 'Saving…' : 'Save'}</button>
+      </form>
       {patch.isError ? <ErrorNotice error={patch.error} /> : null}
     </section>
   )
@@ -310,26 +358,24 @@ function MatchSection({
   )
 }
 
-function TailoringForm({
-  form,
-  setForm,
-  saving,
-  error,
-  suggestedAngle,
-  onSubmit,
-}: {
-  form: BriefForm
-  setForm: (form: BriefForm) => void
-  saving: boolean
-  error: Error | null
-  suggestedAngle: string | null
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
+function TailoringSettings({ applicationId, suggestedAngle }: { applicationId: string; suggestedAngle: string | null }) {
+  const brief = useApplicationBriefQuery(applicationId)
+  const updateBrief = useUpdateApplicationBriefMutation(applicationId)
+  const [form, setForm] = useState<BriefForm>(emptyBriefForm)
+
+  useEffect(() => {
+    if (brief.data) setForm(briefToForm(brief.data))
+  }, [brief.data])
+
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    updateBrief.mutate(formToBriefRequest(form))
+  }
+
   return (
-    <details className="board-accordion">
-      <summary><span>Tailor this application</span></summary>
-      <form className="board-detail-card tailor-form" onSubmit={onSubmit}>
-        <p className="muted">These shape the tone and angle of the materials generated below — per job.</p>
+    <details className="tailor-settings">
+      <summary><span>⚙ Tailoring settings</span><span className="muted tailor-hint">tone · language · angle</span></summary>
+      <form className="tailor-form" onSubmit={save}>
         <div className="field-grid">
           <label>
             Tone
@@ -347,9 +393,7 @@ function TailoringForm({
           <span className="tailor-label-row">
             Positioning angle
             {suggestedAngle ? (
-              <button type="button" className="link-toggle" onClick={() => setForm({ ...form, target_angle: suggestedAngle })}>
-                Use suggested
-              </button>
+              <button type="button" className="link-toggle" onClick={() => setForm({ ...form, target_angle: suggestedAngle })}>Use suggested</button>
             ) : null}
           </span>
           <input value={form.target_angle} onChange={(event) => setForm({ ...form, target_angle: event.target.value })} placeholder="e.g. data analyst with strong BI/dashboarding focus" />
@@ -359,15 +403,15 @@ function TailoringForm({
           <textarea value={form.company_motivation} rows={2} onChange={(event) => setForm({ ...form, company_motivation: event.target.value })} />
         </label>
         <div className="row-actions">
-          <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save tailoring'}</button>
+          <button type="submit" className="secondary-button" disabled={updateBrief.isPending}>{updateBrief.isPending ? 'Saving…' : 'Save settings'}</button>
         </div>
-        {error ? <ErrorNotice error={error} /> : null}
+        {updateBrief.isError ? <ErrorNotice error={updateBrief.error} /> : null}
       </form>
     </details>
   )
 }
 
-function ArtifactsPanel({ applicationId }: { applicationId: string }) {
+function ArtifactsPanel({ applicationId, suggestedAngle }: { applicationId: string; suggestedAngle: string | null }) {
   const [kind, setKind] = useState<GeneratableArtifactKind>('COVER_LETTER')
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null)
   const [instruction, setInstruction] = useState('')
@@ -437,6 +481,7 @@ function ArtifactsPanel({ applicationId }: { applicationId: string }) {
         </div>
         {selectedArtifact?.has_unsupported ? <span className="unsupported-pill">Unsupported claims</span> : null}
       </div>
+      <TailoringSettings applicationId={applicationId} suggestedAngle={suggestedAngle} />
       <div className="artifact-tabs" role="tablist" aria-label="Artifact kinds">
         {artifactKinds.map((item) => (
           <button
@@ -592,28 +637,6 @@ function CitationPanel({ artifact }: { artifact: GeneratedArtifact }) {
 
 function InvalidArtifact() {
   return <div className="notice notice-error">Artifact content did not match the expected shape.</div>
-}
-
-function JobSnapshot({ application }: { application: Application }) {
-  const snapshot = application.job_snapshot
-  const title = stringAt(snapshot, ['text', 'title']) ?? application.job_title
-  const company = application.company ?? stringAt(snapshot, ['companyCleaned']) ?? stringAt(snapshot, ['company'])
-  const place = stringAt(snapshot, ['addresses', 0, 'place'])
-  const link = stringAt(snapshot, ['link'])
-
-  return (
-    <section className="workspace-card job-snapshot">
-      <div>
-        <p className="eyebrow">Job snapshot</p>
-        <h3>{title}</h3>
-        <p className="muted">{[company, place].filter(Boolean).join(' · ') || 'Company/location not listed'}</p>
-      </div>
-      <div className="snapshot-actions">
-        <span className="status-pill">{application.status}</span>
-        {link ? <a href={link} target="_blank" rel="noreferrer">Original posting →</a> : null}
-      </div>
-    </section>
-  )
 }
 
 function FitPointList({ title, points }: { title: string; points: string[] }) {

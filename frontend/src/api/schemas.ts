@@ -172,6 +172,7 @@ export const applicationPatchSchema = z.object({
   board_order: z.number().optional(),
   next_action: z.string().nullable().optional(),
   followup_date: z.string().nullable().optional(),
+  applied_at: z.string().nullable().optional(),
   needs_followup: z.boolean().optional(),
   contact: z.record(z.string(), z.unknown()).nullable().optional(),
 })

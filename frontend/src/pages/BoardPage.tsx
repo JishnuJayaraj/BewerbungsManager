@@ -22,9 +22,12 @@ import {
   useApplicationsQuery,
   useDeleteApplicationMutation,
   usePatchApplicationMutation,
+  useProfileQuery,
+  useUpdateProfileMutation,
   type Application,
   type ApplicationStatus,
 } from '../api'
+import { ghostThreshold, isGoneQuiet } from '../lib/funnel'
 
 type ColumnDefinition = { status: ApplicationStatus; label: string }
 type ActiveBoard = Record<string, Application[]>
@@ -41,8 +44,10 @@ const archiveLabels: Record<string, string> = { REJECTED: 'Rejected', GHOSTED: '
 
 export function BoardPage() {
   const applications = useApplicationsQuery()
+  const profile = useProfileQuery()
   const patch = usePatchApplicationMutation()
   const remove = useDeleteApplicationMutation()
+  const updateProfile = useUpdateProfileMutation()
   const navigate = useNavigate()
   const [board, setBoard] = useState<ActiveBoard>(emptyActiveBoard())
   const sensors = useSensors(
@@ -50,7 +55,15 @@ export function BoardPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const allItems = applications.data?.items ?? []
+  const threshold = ghostThreshold(profile.data)
+  const allItems = (applications.data?.items ?? []).map((application) => ({
+    ...application,
+    gone_quiet: isGoneQuiet(application, threshold),
+  }))
+
+  function setThreshold(days: number) {
+    updateProfile.mutate({ preferences: { ...(profile.data?.preferences ?? {}), ghost_threshold_days: days } })
+  }
 
   useEffect(() => {
     setBoard(groupActive(allItems))
@@ -97,7 +110,23 @@ export function BoardPage() {
           <h2 id="board-title">Your pipeline</h2>
           <p className="section-copy">{activeCount} active · {archived.length} archived. Drag to move, or open a card to work on it.</p>
         </div>
-        <Link className="cta-link cta-link-quiet" to="/search">+ Add from search</Link>
+        <div className="board-controls">
+          <label className="ghost-threshold">
+            Gone quiet after
+            <input
+              type="number"
+              min={3}
+              max={120}
+              value={threshold}
+              onChange={(event) => {
+                const value = Number(event.target.value)
+                if (Number.isFinite(value) && value >= 3) setThreshold(Math.round(value))
+              }}
+            />
+            days
+          </label>
+          <Link className="cta-link cta-link-quiet" to="/search">+ Add from search</Link>
+        </div>
       </div>
 
       {applications.isError ? <ErrorNotice error={applications.error} /> : null}
@@ -182,7 +211,13 @@ function ActiveCard({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: application.id })
   const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition }
+  const [menuOpen, setMenuOpen] = useState(false)
   const quiet = application.gone_quiet
+
+  function act(fn: () => void) {
+    setMenuOpen(false)
+    fn()
+  }
 
   return (
     <article
@@ -193,16 +228,21 @@ function ActiveCard({
       {...attributes}
       {...listeners}
     >
-      <button
-        type="button"
-        className="kanban-card-remove"
-        aria-label="Remove from board"
-        title="Remove from board"
-        onClick={(event) => { event.stopPropagation(); onRemove() }}
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        ×
-      </button>
+      <div className="kanban-card-menu" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+        <button type="button" className="kanban-kebab" aria-label="Card actions" onClick={() => setMenuOpen((open) => !open)}>⋯</button>
+        {menuOpen ? (
+          <div className="kebab-menu" role="menu">
+            {application.status === 'SAVED' ? (
+              <button type="button" onClick={() => act(() => onSetStatus(application, 'APPLIED'))}>✓ Mark applied</button>
+            ) : null}
+            <button type="button" onClick={() => act(() => onSetStatus(application, 'REJECTED'))}>Move to Rejected</button>
+            <button type="button" onClick={() => act(() => onSetStatus(application, 'GHOSTED'))}>Move to Ghosted</button>
+            <button type="button" onClick={() => act(() => onSetStatus(application, 'CLOSED'))}>Move to Closed</button>
+            <button type="button" className="kebab-danger" onClick={() => act(onRemove)}>Remove</button>
+          </div>
+        ) : null}
+      </div>
+
       <strong className="kanban-card-title">{application.job_title || 'Untitled role'}</strong>
       <span className="kanban-card-company">{application.company ?? 'Company not listed'}</span>
       {application.next_action ? <span className="kanban-card-action">→ {application.next_action}</span> : null}

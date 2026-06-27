@@ -1,30 +1,20 @@
 import { Link } from 'react-router'
 import { useApplicationsQuery, useProfileQuery, type Application } from '../api'
-
-function daysUntil(dateStr: string): number {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const target = new Date(dateStr)
-  target.setHours(0, 0, 0, 0)
-  return Math.round((target.getTime() - today.getTime()) / 86_400_000)
-}
-
-function withinDays(iso: string, days: number): boolean {
-  return (Date.now() - new Date(iso).getTime()) / 86_400_000 <= days
-}
+import { daysUntil, ghostThreshold, isGoneQuiet, withinDays } from '../lib/funnel'
 
 export function HomePage() {
   const profile = useProfileQuery()
   const applications = useApplicationsQuery()
 
   const skills = profile.data?.skills.length ?? 0
+  const threshold = ghostThreshold(profile.data)
   const apps = applications.data?.items ?? []
 
   // ── "Needs you" buckets ───────────────────────────
   const followupsDue = apps
     .filter((a) => a.is_active && a.followup_date && daysUntil(a.followup_date) <= 2)
     .sort((a, b) => daysUntil(a.followup_date!) - daysUntil(b.followup_date!))
-  const goneQuiet = apps.filter((a) => a.gone_quiet)
+  const goneQuiet = apps.filter((a) => isGoneQuiet(a, threshold))
   const interviews = apps.filter((a) => a.status === 'INTERVIEW' || a.status === 'OFFER')
   const drafts = apps.filter((a) => a.status === 'SAVED')
 

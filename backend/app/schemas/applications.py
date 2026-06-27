@@ -18,6 +18,7 @@ class ApplicationPatch(BaseModel):
     board_order: int | None = None
     next_action: str | None = None
     followup_date: date | None = None
+    applied_at: datetime | None = None
     needs_followup: bool | None = None
     contact: dict[str, Any] | None = None
 
