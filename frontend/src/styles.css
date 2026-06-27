@@ -2280,14 +2280,26 @@ a {
 .job-row {
   min-height: 86px;
   display: grid;
-  gap: 4px;
+  grid-template-columns: 1fr;
+  justify-content: stretch;
   justify-items: start;
+  gap: 4px;
   border-color: var(--line);
   background: var(--surface);
   color: var(--ink);
+  padding: 14px 16px;
   text-align: left;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
+}
+
+/* grid/flex card-buttons must not inherit the global button's centering */
+.rec-body,
+.suggestion-chip,
+.evidence-chip,
+.archive-open {
+  grid-template-columns: 1fr;
+  justify-content: stretch;
 }
 
 .job-row:hover,
@@ -3157,9 +3169,16 @@ a {
   gap: 12px;
 }
 
-.load-more {
-  justify-self: start;
-  margin-top: 4px;
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.pager .muted {
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
 .job-detail-empty {

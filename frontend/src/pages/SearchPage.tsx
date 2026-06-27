@@ -33,11 +33,6 @@ const contractTypeOptions = [
   { value: 'TEMPORARY', label: 'Temporary' },
 ]
 
-function dedupeJobs(items: JobSummary[]): JobSummary[] {
-  const seen = new Set<string>()
-  return items.filter((job) => (seen.has(job.uuid) ? false : (seen.add(job.uuid), true)))
-}
-
 function splitPlaces(value: string): string[] {
   return value
     .split(',')
@@ -93,27 +88,26 @@ export function SearchPage() {
     setSavedId(null)
     const request = buildRequest(searchPhrase, places, 1)
     setActiveReq(request)
-    setPage(1)
-    search.mutate(request, {
-      onSuccess: (res) => {
-        setJobs(res.jobs)
-        setHits(res.hits)
-      },
-    })
+    fetchPage(request, 1)
   }
 
-  function loadMore() {
-    if (!activeReq) return
-    const nextPage = page + 1
+  function fetchPage(baseReq: BasicSearchRequest, pageNum: number) {
     search.mutate(
-      { ...activeReq, page: nextPage },
+      { ...baseReq, page: pageNum },
       {
         onSuccess: (res) => {
-          setJobs((current) => dedupeJobs([...current, ...res.jobs]))
-          setPage(nextPage)
+          setJobs(res.jobs)
+          setHits(res.hits)
+          setPage(pageNum)
+          setSelectedJobUuid(null)
         },
       },
     )
+  }
+
+  function goToPage(pageNum: number) {
+    if (!activeReq || pageNum < 1) return
+    fetchPage(activeReq, pageNum)
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -153,7 +147,10 @@ export function SearchPage() {
   const selectedSummary = jobs.find((job) => job.uuid === selectedJobUuid) ?? null
   const loadingSuggestions = suggestions.isFetching
   const hasSavedRoles = savedRoles.length > 0
-  const canLoadMore = hits !== null && jobs.length < hits
+  const pageSize = 20
+  const rangeStart = jobs.length === 0 ? 0 : (page - 1) * pageSize + 1
+  const rangeEnd = (page - 1) * pageSize + jobs.length
+  const hasNext = hits !== null && rangeEnd < hits
 
   // Adapt once presets resolve: new users get discovery open; returning users start with
   // their saved roles and the most recent one's postings, discovery collapsed.
@@ -318,7 +315,9 @@ export function SearchPage() {
             <div className="results-header">
               <h3>{activeRole ?? 'Results'}</h3>
               <span>
-                {hits !== null ? `${jobs.length} of ${hits.toLocaleString()}` : `${jobs.length}`} shown
+                {hits !== null && jobs.length > 0
+                  ? `Showing ${rangeStart}–${rangeEnd} of ${hits.toLocaleString()}`
+                  : `${jobs.length} shown`}
               </span>
             </div>
             {jobs.length === 0 && !search.isPending ? (
@@ -338,10 +337,16 @@ export function SearchPage() {
                 </button>
               ))}
             </div>
-            {canLoadMore ? (
-              <button type="button" className="secondary-button load-more" onClick={loadMore} disabled={search.isPending}>
-                {search.isPending ? 'Loading…' : `Load more (${(hits! - jobs.length).toLocaleString()} more)`}
-              </button>
+            {jobs.length > 0 ? (
+              <div className="pager">
+                <button type="button" className="secondary-button" onClick={() => goToPage(page - 1)} disabled={page <= 1 || search.isPending}>
+                  ← Prev
+                </button>
+                <span className="muted">Page {page}</span>
+                <button type="button" className="secondary-button" onClick={() => goToPage(page + 1)} disabled={!hasNext || search.isPending}>
+                  Next →
+                </button>
+              </div>
             ) : null}
           </div>
           <JobDetailPanel
