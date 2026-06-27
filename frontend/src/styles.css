@@ -3059,10 +3059,14 @@ a {
 
 .search-filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   border-top: 1px solid var(--line-soft);
   padding-top: 14px;
+}
+
+.posted-select {
+  max-width: 200px;
 }
 
 .filter-chip {

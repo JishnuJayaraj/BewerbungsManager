@@ -28,6 +28,11 @@ const employmentTypeOptions = [
   { value: 'MINI_JOB', label: 'Mini job' },
 ]
 
+const contractTypeOptions = [
+  { value: 'PERMANENT', label: 'Permanent' },
+  { value: 'TEMPORARY', label: 'Temporary' },
+]
+
 function splitPlaces(value: string): string[] {
   return value
     .split(',')
@@ -47,6 +52,8 @@ export function SearchPage() {
   const [placesText, setPlacesText] = useState('')
   const [jobTypes, setJobTypes] = useState<string[]>([])
   const [employmentTypes, setEmploymentTypes] = useState<string[]>([])
+  const [contractTypes, setContractTypes] = useState<string[]>([])
+  const [postedWithin, setPostedWithin] = useState<string>('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeRole, setActiveRole] = useState<string | null>(null)
   const [selectedJobUuid, setSelectedJobUuid] = useState<string | null>(null)
@@ -60,6 +67,8 @@ export function SearchPage() {
       places,
       job_types: jobTypes,
       employment_types: employmentTypes,
+      contract_types: contractTypes,
+      posted_within_days: postedWithin ? Number(postedWithin) : null,
       page: 1,
       size: 20,
     }
@@ -223,8 +232,20 @@ export function SearchPage() {
         </div>
         {filtersOpen ? (
           <div className="search-filters">
+            <div className="facet-group">
+              <h4>Posted within</h4>
+              <select className="posted-select" value={postedWithin} onChange={(event) => setPostedWithin(event.target.value)}>
+                <option value="">Any time</option>
+                <option value="1">Last 24 hours</option>
+                <option value="3">Last 3 days</option>
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+            </div>
             <ChipFilter label="Role type" options={jobTypeOptions} values={jobTypes} onChange={setJobTypes} />
             <ChipFilter label="Working time" options={employmentTypeOptions} values={employmentTypes} onChange={setEmploymentTypes} />
+            <ChipFilter label="Contract" options={contractTypeOptions} values={contractTypes} onChange={setContractTypes} />
           </div>
         ) : null}
       </form>

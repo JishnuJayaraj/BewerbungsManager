@@ -21,6 +21,8 @@ class BasicSearchRequest(BaseModel):
     places: list[str] = Field(default_factory=list)  # free-text city names (any of)
     job_types: list[str] = Field(default_factory=list)
     employment_types: list[str] = Field(default_factory=list)
+    contract_types: list[str] = Field(default_factory=list)  # PERMANENT / TEMPORARY
+    posted_within_days: int | None = Field(default=None, ge=1, le=365)
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
 

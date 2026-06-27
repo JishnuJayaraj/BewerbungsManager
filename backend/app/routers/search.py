@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -162,6 +163,23 @@ def build_basic_search_body(request: BasicSearchRequest) -> SearchBody:
                 "type": "text",
                 "field": "classifications.employmentTypes",
                 "in": request.employment_types,
+            }
+        )
+    if request.contract_types:
+        filters.append(
+            {
+                "type": "text",
+                "field": "classifications.contractTypes",
+                "in": request.contract_types,
+            }
+        )
+    if request.posted_within_days:
+        since = (datetime.now(timezone.utc) - timedelta(days=request.posted_within_days)).date()
+        filters.append(
+            {
+                "type": "date",
+                "field": "period.dateFrom",
+                "from": since.isoformat(),
             }
         )
 

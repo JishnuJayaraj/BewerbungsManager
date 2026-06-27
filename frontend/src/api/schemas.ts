@@ -30,6 +30,8 @@ export const basicSearchRequestSchema = z.object({
   places: z.array(z.string()).default([]),
   job_types: z.array(z.string()).default([]),
   employment_types: z.array(z.string()).default([]),
+  contract_types: z.array(z.string()).default([]),
+  posted_within_days: z.number().int().positive().max(365).nullable().optional(),
   page: z.number().int().positive().default(1),
   size: z.number().int().positive().max(100).default(20),
 })
