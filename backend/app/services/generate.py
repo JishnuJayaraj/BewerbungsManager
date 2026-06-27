@@ -66,7 +66,9 @@ def _system_prompt(kind: ArtifactKind) -> str:
     common = (
         "Return only JSON matching the requested artifact schema. Use profile, job, brief, and "
         "company_motivation from the input. Every factual candidate claim must cite a real "
-        "skill:, experience:, project:, or job: evidence_ref, or use UNSUPPORTED. Never assert "
+        "skill:, experience:, project:, or job: evidence_ref, or use UNSUPPORTED. Put citations "
+        "ONLY in the claims array — NEVER write evidence_ref, ids, or any [bracketed] markers "
+        "inside the body/answer text; the body must read as clean human prose. Never assert "
         "anything listed in do_not_claim. If instruction and previous_artifact are present, "
         "regenerate a new version that follows the instruction while preserving citation rules."
     )

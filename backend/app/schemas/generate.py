@@ -1,10 +1,23 @@
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+# Strip inline citation markers the model sometimes leaves in body text,
+# e.g. "[evidence_ref:experience:uuid]" or "[skill:uuid]". Citations live in `claims`.
+_REF_MARKER = re.compile(r"\s*\[\s*(?:evidence_ref|experience|skill|project|job)\b[^\]]*\]", re.IGNORECASE)
+
+
+def _strip_refs(text: str) -> str:
+    cleaned = _REF_MARKER.sub("", text)
+    # tidy any doubled spaces / space-before-punctuation left behind
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r" +([.,;:])", r"\1", cleaned)
+    return cleaned.strip()
 
 from app.models import ArtifactKind, BriefLanguage
 from app.services.citations import CitationClaim, VerifiedCitation
@@ -15,8 +28,10 @@ ExportFormat = Literal["markdown", "pdf"]
 def _as_text(value: Any) -> str:
     """LLMs sometimes return a body/answer as a list of paragraphs — join to a string."""
     if isinstance(value, list):
-        return "\n\n".join(str(part).strip() for part in value if part)
-    return value if isinstance(value, str) else ("" if value is None else str(value))
+        text = "\n\n".join(str(part).strip() for part in value if part)
+    else:
+        text = value if isinstance(value, str) else ("" if value is None else str(value))
+    return _strip_refs(text)
 
 
 def _as_language(value: Any) -> Any:
@@ -98,9 +113,9 @@ class CvExperienceBlock(BaseModel):
     @classmethod
     def _bullets(cls, value: Any) -> Any:
         if isinstance(value, str):
-            return [value]
+            return [_strip_refs(value)]
         if isinstance(value, list):
-            return [str(item) for item in value if item]
+            return [_strip_refs(str(item)) for item in value if item]
         return []
 
 

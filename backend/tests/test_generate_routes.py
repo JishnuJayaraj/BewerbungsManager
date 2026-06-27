@@ -183,3 +183,19 @@ def test_portal_answer_requires_question_and_can_generate(tmp_path) -> None:
     assert generated.status_code == 201
     assert generated.json()["content"]["question"] == "Warum dieses Unternehmen?"
     assert generated.json()["has_unsupported"] is False
+
+
+def test_cover_letter_body_strips_inline_refs() -> None:
+    from app.schemas.generate import CoverLetterContent
+
+    content = CoverLetterContent.model_validate(
+        {
+            "language": "EN",
+            "format": "plain",
+            "subject": "X",
+            "body": "Built ETL pipelines. [evidence_ref:experience:abc][skill:def] Shipped dashboards.",
+        }
+    )
+    assert "[" not in content.body
+    assert "evidence_ref" not in content.body
+    assert content.body == "Built ETL pipelines. Shipped dashboards."
