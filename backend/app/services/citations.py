@@ -1,16 +1,26 @@
 from __future__ import annotations
 
 import uuid
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 CitationStatus = Literal["SUPPORTED", "UNSUPPORTED"]
 
 
 class CitationClaim(BaseModel):
-    claim: str
+    claim: str = ""
     evidence_ref: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            return {"claim": data}
+        if isinstance(data, dict) and not data.get("claim"):
+            # models often use "text"/"statement"/"content" instead of "claim"
+            return {**data, "claim": data.get("text") or data.get("statement") or data.get("content") or ""}
+        return data
 
 
 class CitationEvidence(BaseModel):

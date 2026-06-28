@@ -45,3 +45,11 @@ def test_supported_ref_checks_existence_not_semantic_truth() -> None:
     evidence = CitationEvidence(skill_ids={skill_id})
 
     assert is_supported_ref(f"skill:{skill_id}", evidence) is True
+
+
+def test_citation_claim_accepts_text_key() -> None:
+    from app.services.citations import CitationClaim
+
+    c = CitationClaim.model_validate({"text": "I built ETL pipelines.", "evidence_ref": "skill:Python"})
+    assert c.claim == "I built ETL pipelines."
+    assert c.evidence_ref == "skill:Python"
