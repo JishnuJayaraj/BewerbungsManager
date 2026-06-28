@@ -33,6 +33,22 @@ cp .env.example .env          # fill in HR4U_* and LLM_* keys
 The demo seed creates one profile and one saved application (a Berlin "Senior Python Engineer")
 so the UI has content on first load — search → save → brief → fit → generate → board.
 
+## Run as a home server (one port, accessible on your WiFi)
+
+To let another device on your network use it (e.g. a spare laptop acting as the server),
+build the frontend once and serve everything from FastAPI on a single port:
+
+```bash
+cp .env.example .env          # fill keys
+./serve.sh                    # builds UI, migrates, serves on 0.0.0.0:8000
+```
+
+Then on any device on the same WiFi open `http://<server-ip>:<port>` (the script prints the URL;
+find the IP with `hostname -I`). Notes:
+- The app is **single-user** (no accounts) — one running instance = one shared profile + board.
+  For separate people, run separate instances with their own `DATABASE_URL`.
+- Keep the server machine awake; allow the port through its firewall; LLM calls run on your key.
+
 ## Backend
 
 ```bash

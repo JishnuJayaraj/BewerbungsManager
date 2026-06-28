@@ -47,6 +47,8 @@ class Settings(BaseSettings):
 
     database_url: str = Field(default="sqlite:///./jobcraft.db", alias="DATABASE_URL")
     single_user: bool = Field(default=True, alias="SINGLE_USER")
+    # Serve the built frontend from FastAPI (single-port home-server deployment).
+    serve_frontend: bool = Field(default=False, alias="SERVE_FRONTEND")
 
     # Days an application can sit in "Applied" with no movement before it's flagged as gone quiet.
     ghost_threshold_days: int = Field(default=21, alias="GHOST_THRESHOLD_DAYS")

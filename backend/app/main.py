@@ -1,15 +1,19 @@
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.config import Settings, get_settings
+from app.config import ROOT_DIR, Settings, get_settings
 from app.routers import applications, checklist, fit, generate, jobs, profile, quickfit, search, suggestions
+
+FRONTEND_DIST = ROOT_DIR / "frontend" / "dist"
 
 
 class SettingsResponse(BaseModel):
@@ -103,6 +107,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(checklist.router)
     app.include_router(suggestions.router)
     app.include_router(quickfit.router)
+
+    # Serve the built frontend (single-port deployment) when it exists. API and /health
+    # routes are registered above, so they take precedence; everything else falls back to
+    # index.html for client-side routing.
+    if app_settings.serve_frontend and FRONTEND_DIST.is_dir():
+        app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_spa(full_path: str) -> FileResponse:
+            if full_path.startswith("api/") or full_path == "health":
+                raise HTTPException(status_code=404, detail="Not found")
+            return FileResponse(FRONTEND_DIST / "index.html")
 
     return app
 
