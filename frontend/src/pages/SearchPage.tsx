@@ -213,7 +213,7 @@ export function SearchPage() {
               </button>
             </div>
 
-            {loadingSuggestions && cards.length === 0 ? <p className="muted">Looking at your profile…</p> : null}
+            {loadingSuggestions && cards.length === 0 ? <p className="muted loading-pulse">Looking at your profile…</p> : null}
             {suggestions.isError ? (
               <div className="notice notice-error">Couldn't generate recommendations right now. Build your profile, then refresh.</div>
             ) : null}
@@ -412,7 +412,7 @@ function JobDetailPanel({
       {detail?.link ? (
         <p><a href={detail.link} target="_blank" rel="noreferrer">Open original posting →</a></p>
       ) : null}
-      {loading ? <p className="muted">Loading posting…</p> : null}
+      {loading ? <p className="muted loading-pulse">Loading posting…</p> : null}
       <DetailList title="Tasks" items={detail?.text.tasks ?? []} />
       <DetailList title="Requirements" items={detail?.text.requirements ?? []} />
       <DetailList title="Benefits" items={detail?.text.benefits ?? []} />

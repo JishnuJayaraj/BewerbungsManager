@@ -131,7 +131,7 @@ export function PackageChecklistPanel({ applicationId, compact = false }: { appl
   }
 
   if (checklist.isPending) {
-    return <section className="workspace-card"><p className="muted">Loading checklist...</p></section>
+    return <section className="workspace-card"><p className="muted loading-pulse">Loading checklist...</p></section>
   }
   if (checklist.isError) {
     return <section className="workspace-card"><InlineError error={checklist.error} /></section>
@@ -318,7 +318,7 @@ export function CommsLogPanel({ applicationId, compact = false }: { applicationI
           </div>
         </div>
       ) : null}
-      {comms.isPending ? <p className="muted">Loading comms...</p> : null}
+      {comms.isPending ? <p className="muted loading-pulse">Loading comms...</p> : null}
       {comms.isError ? <InlineError error={comms.error} /> : null}
       <div className="comms-timeline">
         {entries.map((entry) => (

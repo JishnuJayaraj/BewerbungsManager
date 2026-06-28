@@ -11,7 +11,7 @@ export function SettingsPage() {
       </div>
 
       {settings.isPending ? (
-        <p className="muted">Loading settings...</p>
+        <p className="muted loading-pulse">Loading settings...</p>
       ) : settings.isError ? (
         <div className="notice notice-error" role="alert">
           {settings.error instanceof ApiError

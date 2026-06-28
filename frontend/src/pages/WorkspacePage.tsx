@@ -342,7 +342,7 @@ function MatchSection({
       {!fit && !running ? (
         <p className="muted">Run the analysis to see how your profile matches this job — strengths, gaps, and an angle.</p>
       ) : null}
-      {running && !fit ? <p className="muted">Comparing your profile to the posting…</p> : null}
+      {running && !fit ? <p className="muted loading-pulse">Comparing your profile to the posting…</p> : null}
 
       {fit ? (
         <>

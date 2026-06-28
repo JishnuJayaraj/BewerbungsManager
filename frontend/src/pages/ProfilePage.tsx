@@ -54,7 +54,7 @@ export function ProfilePage() {
         <button type="button" onClick={() => setEnrichOpen(true)}>✦ Enrich with AI</button>
       </div>
 
-      {profile.isPending ? <p className="muted">Loading profile…</p> : null}
+      {profile.isPending ? <p className="muted loading-pulse">Loading profile…</p> : null}
       {profile.isError ? <ErrorNotice error={profile.error} /> : null}
       {data?.parse_warning ? <div className="notice notice-error">{data.parse_warning}</div> : null}
 
@@ -796,7 +796,7 @@ function EnrichModal({ onClose, hasProfile }: { onClose: () => void; hasProfile:
         </div>
 
         <div className="modal-body">
-          {questions.isPending ? <p className="muted">Looking at your profile for gaps…</p> : null}
+          {questions.isPending ? <p className="muted loading-pulse">Looking at your profile for gaps…</p> : null}
           {!hasProfile && items.length === 0 && !questions.isPending ? (
             <p className="muted">Tip: paste your CV or add a few skills first — the questions get sharper.</p>
           ) : null}

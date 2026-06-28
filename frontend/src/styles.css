@@ -3618,3 +3618,101 @@ a {
 }
 .angle-chip:hover { background: var(--accent-tint-2); transform: none; }
 .angle-hint { margin: 0; font-size: 0.82rem; }
+
+/* ══ Visual polish pass ═══════════════════════════════════════════════ */
+
+::selection {
+  background: var(--accent-tint-2);
+  color: var(--accent-ink);
+}
+
+/* On-brand, unobtrusive scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+*::-webkit-scrollbar { width: 11px; height: 11px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+  background-clip: padding-box;
+}
+
+/* Consistent focus ring on interactive non-button elements */
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+summary { outline: none; }
+
+/* Link refinement */
+a {
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  text-underline-offset: 2px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+a:hover { text-decoration-color: var(--accent); }
+
+/* Typographic rhythm */
+h1, h2, h3, h4 { text-wrap: balance; }
+.section-copy, .placeholder-copy, .muted { text-wrap: pretty; }
+.artifact-text, .entry-note, .quickfit-headline, .match-summary p { text-wrap: pretty; }
+
+/* Loading + skeleton */
+.loading-pulse { animation: lp 1.4s ease-in-out infinite; }
+@keyframes lp { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 80%, transparent), transparent);
+  animation: shimmer 1.3s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+  .loading-pulse, .skeleton::after { animation: none; }
+}
+
+/* Snappier button press; gentler disabled */
+button:active:not(:disabled) { transform: translateY(0.5px); }
+button:disabled { filter: saturate(0.55); }
+
+/* Inputs: calmer rest, clearer hover */
+input:hover:not(:focus),
+textarea:hover:not(:focus),
+select:hover:not(:focus) { border-color: var(--line-strong); }
+
+/* Card hover consistency for the main surfaces */
+.page-section,
+.profile-card,
+.board-detail-card,
+.workspace-card { transition: box-shadow 0.18s ease, border-color 0.16s ease; }
+
+/* Pills/badges crispness */
+.status-pill, .mini-pill, .req-badge, .archive-count, .funnel-label,
+.rec-skill, .tag-chip, .gap-chip { font-variant-numeric: tabular-nums; }
+
+/* Section headings: tighter kicker spacing */
+.eyebrow, .brand-kicker { line-height: 1.2; }
+
+/* Smooth anchor jumps from the strength-meter gap chips */
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
