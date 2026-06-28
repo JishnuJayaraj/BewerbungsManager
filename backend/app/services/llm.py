@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, TypeVar
@@ -158,11 +159,32 @@ def _extract_content(response: Any) -> str:
     return content
 
 
+def _loads_lenient(content: str) -> Any:
+    """Parse JSON even when the model wraps it in ```json fences or surrounding prose."""
+    text = content.strip()
+    if text.startswith("```"):
+        # drop the opening fence (``` or ```json) and the closing fence
+        text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
+        text = re.sub(r"\s*```$", "", text).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # fall back to the first balanced {...} or [...] block in the text
+        start = min((i for i in (text.find("{"), text.find("[")) if i != -1), default=-1)
+        if start != -1:
+            opener = text[start]
+            closer = "}" if opener == "{" else "]"
+            end = text.rfind(closer)
+            if end > start:
+                return json.loads(text[start : end + 1])
+        raise
+
+
 def _validate_json(
     content: str,
     response_model: type[T] | TypeAdapter[T] | None,
 ) -> T | dict[str, Any]:
-    parsed = json.loads(content)
+    parsed = _loads_lenient(content)
     if response_model is None:
         return TypeAdapter(dict[str, Any]).validate_python(parsed)
     if isinstance(response_model, TypeAdapter):
