@@ -1,0 +1,31 @@
+# JobCraft systemd service — auto-start on boot, restart on crash.
+#
+# Assumes: repo at /home/jishnu/jobcraft, user "jishnu", port 8000, and that you've
+# run `uv sync` once so backend/.venv exists. Edit the paths/user/port if yours differ.
+#
+# Install:
+#   sudo cp ~/jobcraft/deploy/jobcraft.service /etc/systemd/system/jobcraft.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jobcraft
+# Check / control:
+#   systemctl status jobcraft          journalctl -u jobcraft -f
+#   sudo systemctl restart jobcraft    (after deploying an update)
+
+[Unit]
+Description=JobCraft (job-application workbench)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jishnu
+WorkingDirectory=/home/jishnu/jobcraft/backend
+Environment=SERVE_FRONTEND=true
+# Apply any DB migrations before starting, then serve UI + API on the LAN.
+ExecStartPre=/home/jishnu/jobcraft/backend/.venv/bin/alembic upgrade head
+ExecStart=/home/jishnu/jobcraft/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
